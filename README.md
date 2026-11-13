@@ -115,7 +115,8 @@ WebLinkCrawler-网页链接抓取/
 ├── .dockerignore              # 容器构建忽略规则
 ├── CHANGELOG.md               # 变更日志（只追加）
 ├── README.md
-└── LICENSE                    # AGPL-3.0-or-later
+├── NOTICE                     # 版权与授权声明
+└── LICENSE                    # AGPL-3.0-or-later 全文
 ```
 
 ## 文档索引

@@ -366,3 +366,25 @@
 - `python -m compileall -q src/weblinkcrawler packaging` → 通过。
 - `python -m build --outdir dist` → wheel/sdist 构建成功；wheel METADATA 为 `License-Expression: AGPL-3.0-or-later`、`Author: 智维ITMSKY`；wheel 与 sdist 内的 `LICENSE` 均为 AGPL-3.0 全文且包含第 13 条；wheel 内 `__init__.py` 的 `APP_LICENSE` 为 `AGPL-3.0-or-later`。
 
+---
+
+## [v0.1.0] -2026-11-13 · 许可文件结构修正（恢复 GitHub 许可证识别）
+
+> 本条为**追加**记录，上方全部历史条目不作任何修改。版本号仍锁定 `v0.1.0`。
+> 原因：LICENSE 前置项目声明后，GitHub 自动识别结果为 `Other`；将版权声明移出 LICENSE 可恢复标准识别。
+
+### 改动
+
+- `LICENSE`：移除项目前言，恢复 GNU AGPL-3.0 官方原文，确保 GitHub 识别为 `AGPL-3.0`。
+- `NOTICE`（新增）：承载项目版权、自由软件授权声明与 AGPL 第 13 条网络服务源码提供提示。
+- `pyproject.toml`：`license-files = ["LICENSE", "NOTICE"]`。
+- `.github/workflows/release.yml`：Windows 发布 zip 增加 `NOTICE`。
+- `.github/workflows/ci.yml`：wheel 许可文件断言增加 `NOTICE`。
+- `README.md`、`docs/02-环境部署教程.md`：目录树增加 `NOTICE`。
+
+### 验证（真实执行）
+
+- `python -m build --outdir dist` → 构建成功；wheel 的 `licenses/` 目录同时包含 `LICENSE` 与 `NOTICE`。
+- wheel METADATA 保持 `License-Expression: AGPL-3.0-or-later`。
+- 推送后通过 GitHub API 复核仓库 `license.key` 应为 `agpl-3.0`。
+
