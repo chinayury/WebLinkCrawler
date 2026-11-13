@@ -55,7 +55,9 @@ jobs:
 
       - name: Smoke - version and metadata
         run: |
-          python -c "import weblinkcrawler as w; assert w.APP_VERSION == '0.1.0', w.APP_VERSION; print('APP_VERSION=' + w.APP_VERSION)"
+          python -c "import weblinkcrawler as w; assert w.APP_VERSION == '0.1.0', w.APP_VERSION; assert w.APP_LICENSE == 'AGPL-3.0-or-later', w.APP_LICENSE; assert w.APP_COPYRIGHT, 'APP_COPYRIGHT is empty'; print('APP_VERSION=' + w.APP_VERSION + ' LICENSE=' + w.APP_LICENSE)"
+          python -c "import glob, zipfile; whl = glob.glob('dist/*.whl')[0]; names = zipfile.ZipFile(whl).namelist(); assert any(n.endswith('/LICENSE') for n in names), names; print('WHEEL_LICENSE=OK')"
+          python -c "from importlib.metadata import metadata; md = metadata('weblinkcrawler'); assert md['License-Expression'] == 'AGPL-3.0-or-later', dict(md); print('LICENSE_METADATA=AGPL-3.0-or-later')"
 
       - name: Smoke - core imports
         run: |

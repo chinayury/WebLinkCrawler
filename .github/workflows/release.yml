@@ -63,9 +63,12 @@ jobs:
           python -m pip install -r requirements.txt pyinstaller
           python -m pip install .
 
+      - name: Generate Windows version resource
+        run: python packaging/make_version_info.py
+
       - name: Build onefile windowed EXE
         run: |
-          pyinstaller --noconfirm --clean --onefile --windowed --name WebLinkCrawler --collect-all ttkbootstrap packaging/pyinstaller_desktop.py
+          pyinstaller --noconfirm --clean --onefile --windowed --name WebLinkCrawler --version-file packaging/version_info.txt --collect-all ttkbootstrap packaging/pyinstaller_desktop.py
 
       - name: Package Windows zip
         shell: pwsh

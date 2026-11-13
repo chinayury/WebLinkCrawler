@@ -1,3 +1,6 @@
+# Copyright (C) 2026 智维ITMSKY
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """配置管理：默认值合并 / 迁移 / 校验 / URL 规范化。
 
 修复原 v0.6 的缺陷：旧 enhanced_config.json 缺少 element_crawling 等键时，

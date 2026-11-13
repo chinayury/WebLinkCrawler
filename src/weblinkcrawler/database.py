@@ -1,3 +1,6 @@
+# Copyright (C) 2026 智维ITMSKY
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """SQLite 持久化：抓取任务 / 链接 / 体检结果。
 
 - 沿用既有 crawling_tasks、crawled_links 表结构（向后兼容旧库）；

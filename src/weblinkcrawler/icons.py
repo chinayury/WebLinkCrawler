@@ -1,3 +1,6 @@
+# Copyright (C) 2026 智维ITMSKY
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """纯 Python 线性图标渲染（无第三方图像依赖）—— 「墨线」Ink-Line 风格。
 
 与旧版（2px 直角折线）的差异：

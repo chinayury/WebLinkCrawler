@@ -1,3 +1,6 @@
+# Copyright (C) 2026 智维ITMSKY
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """抓取引擎：链接提取、并发爬取、链接体检与结构化导出。
 
 本模块是 GUI（app.py）与测试（tests/test_core.py）共同依赖的稳定接口层，对外

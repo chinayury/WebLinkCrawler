@@ -1,3 +1,6 @@
+# Copyright (C) 2026 智维ITMSKY
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """视觉体系「宣纸·墨黛」（Rice Paper & Ink）—— 全浅色，无暗色主题，无背景图。
 
 设计要点（与既有三套「青瓷·赭石 / 黛蓝·琥珀 / 陶红·亚麻」形成双轴差异）：

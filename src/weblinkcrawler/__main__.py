@@ -1,3 +1,6 @@
+# Copyright (C) 2026 智维ITMSKY
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """支持 ``python -m weblinkcrawler`` 启动入口。
 
 等价于仓库根目录的 ``python WebLinkCrawler.py``：调用

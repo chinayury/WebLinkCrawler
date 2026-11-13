@@ -295,3 +295,74 @@
 - 核心功能（配置加载、URL 规范化、去重键、安全校验、链接提取）以模块级调用实跑通过。
 - README 与 docs 中所有源码路径、模块名、命令与磁盘一致；版本号多处声明一致（`__init__.py` / `pyproject.toml` / README / docs 均为 v0.1.0）。
 
+---
+
+## [v0.1.0] -2026-11-13 · 许可信息统一（GPL-3.0-or-later）
+
+> 本条为**追加**记录，上方全部历史条目不作任何修改。版本号仍锁定 `v0.1.0`。
+> 说明：2026-11-13「项目整理」条目中的「新增 `LICENSE`：MIT 许可证」是当时状态的真实记录，按只追加规则保留；项目当前许可证为 GPL-3.0-or-later，以本条与 `LICENSE` 文件为准。
+
+### 统一口径
+
+- 开发者：智维ITMSKY
+- 版权：Copyright (C) 2026 智维ITMSKY
+- 官网：http://www.itmsky.com
+- 许可证：GNU General Public License v3.0 or later（GPL-3.0-or-later）
+
+### 改动
+
+- `LICENSE`：在 GPL-3.0 正文前增加项目版权与授权声明，许可证正文未改动。
+- `src/weblinkcrawler/__init__.py`：新增 `APP_COPYRIGHT` / `APP_LICENSE` / `APP_LICENSE_NAME` 常量，纳入 `__all__`。
+- `src/weblinkcrawler/app.py`：关于窗口新增许可证行；开发者、版权行改用统一常量与全角冒号。
+- `src/weblinkcrawler/*.py`（11 个）与 `packaging/*.py`：文件头统一增加 `Copyright (C) 2026 智维ITMSKY` 与 `SPDX-License-Identifier: GPL-3.0-or-later`。
+- `pyproject.toml`：保持 PEP 639 `license = "GPL-3.0-or-later"` 与 `license-files = ["LICENSE"]`；未添加 License 分类器——`License-Expression` 与 License 分类器不能并存（setuptools>=77 会报 `InvalidConfigError`）。
+- `README.md`：增加 GPL-3.0-or-later 许可证徽章。
+- `docs/01-项目介绍与架构.md`：页首信息增加版权行，许可证写全称。
+- `docs/02-环境部署教程.md`：两处目录树为 `LICENSE` 补许可注释。
+- `docs/03-功能使用说明.md`：关于窗口描述同步许可证与版权行。
+- `packaging/make_version_info.py`（新增）：从包常量生成 Windows 版本资源，避免版本号多处漂移。
+- `packaging/version_info.txt`：构建时生成（已加入 `.gitignore`），写入 CompanyName / LegalCopyright / ProductName 等。
+- `packaging/pyinstaller_desktop.py`、`.github/workflows/release.yml`：打包前生成版本资源并传 `--version-file`。
+- `.github/workflows/ci.yml`：冒烟检查增加 `APP_LICENSE` / `APP_COPYRIGHT` 断言、wheel 内 LICENSE 存在性与 `License-Expression` 元数据断言。
+- `.gitignore`：忽略生成的 `packaging/version_info.txt`。
+
+### 验证（真实执行）
+
+- `python -m compileall -q src/weblinkcrawler packaging` → 通过。
+- `python packaging/make_version_info.py` → 生成成功；PyInstaller 6.22.3 `load_version_info_from_text_file()` 解析通过，filevers/prodvers `(0, 1, 0, 0)`，CompanyName `智维ITMSKY`，LegalCopyright `Copyright (C) 2026 智维ITMSKY`。
+- `python -m build --outdir dist` → wheel/sdist 构建成功；wheel METADATA 为 `License-Expression: GPL-3.0-or-later`、`Author: 智维ITMSKY`，wheel 内含 `weblinkcrawler-0.1.0.dist-info/licenses/LICENSE`；sdist 内含 `weblinkcrawler-0.1.0/LICENSE`。
+
+---
+
+## [v0.1.0] -2026-11-13 · 许可证切换为 AGPL-3.0-or-later
+
+> 本条为**追加**记录，上方全部历史条目不作任何修改。版本号仍锁定 `v0.1.0`。
+> 说明：上一条「许可信息统一（GPL-3.0-or-later）」记录的是切换前状态，按只追加规则保留；项目当前许可证为 AGPL-3.0-or-later，以本条与 `LICENSE` 文件为准。
+
+### 统一口径
+
+- 开发者：智维ITMSKY
+- 版权：Copyright (C) 2026 智维ITMSKY
+- 官网：http://www.itmsky.com
+- 许可证：GNU Affero General Public License v3.0 or later（AGPL-3.0-or-later，见 `LICENSE`）
+- SPDX-License-Identifier: `AGPL-3.0-or-later`
+- 网络服务条款：修改本程序并通过网络向公众提供服务（SaaS、Web、API 等）时，须向服务使用者提供对应修改后的完整源代码（AGPL 第 13 条）。
+
+### 改动
+
+- `LICENSE`：替换为 GNU AGPL-3.0 官方全文（含第 13 条 Remote Network Interaction），保留项目版权头并增加网络服务源码提供提示。
+- `src/weblinkcrawler/__init__.py`：`APP_LICENSE` 改为 `AGPL-3.0-or-later`，`APP_LICENSE_NAME` 改为 `GNU Affero General Public License v3.0 or later`。
+- 全部 11 个包模块与 `packaging/*.py`：SPDX 文件头改为 `AGPL-3.0-or-later`。
+- `src/weblinkcrawler/app.py`：关于窗口经常量自动显示 AGPL 许可证名称与标识（无硬编码改动）。
+- `pyproject.toml`：`license = "AGPL-3.0-or-later"`，`license-files = ["LICENSE"]` 不变。
+- `README.md`：许可证徽章、目录树注释、「许可与信息」正文与 AGPL 网络服务提示同步。
+- `docs/01-项目介绍与架构.md`：页首版权/许可证信息与 SPDX 标识同步。
+- `docs/02-环境部署教程.md`：两处目录树注释改为 AGPL。
+- `docs/03-功能使用说明.md`：关于窗口描述改为 AGPL。
+- `.github/workflows/ci.yml`：许可证常量与 wheel 元数据断言改为 `AGPL-3.0-or-later`。
+
+### 验证（真实执行）
+
+- `python -m compileall -q src/weblinkcrawler packaging` → 通过。
+- `python -m build --outdir dist` → wheel/sdist 构建成功；wheel METADATA 为 `License-Expression: AGPL-3.0-or-later`、`Author: 智维ITMSKY`；wheel 与 sdist 内的 `LICENSE` 均为 AGPL-3.0 全文且包含第 13 条；wheel 内 `__init__.py` 的 `APP_LICENSE` 为 `AGPL-3.0-or-later`。
+

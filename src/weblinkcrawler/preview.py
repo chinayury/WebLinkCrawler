@@ -1,3 +1,6 @@
+# Copyright (C) 2026 智维ITMSKY
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """WebLinkCrawler独立网页预览进程（PyQt5 + QtWebEngine）。
 
 本模块刻意与 Tk主程序分进程运行，避免 Tk与 Qt两套事件循环互相干扰：

@@ -1,3 +1,6 @@
+# Copyright (C) 2026 智维ITMSKY
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """WebLinkCrawler GUI —— 「宣纸·墨黛」视觉体系（Rice Paper & Ink）。
 
 版式：浅色纸底分组导航栏 + 右侧工作区（顶栏 + 分页面板）；面板为「通栏纸底
@@ -27,7 +30,15 @@ from tkinter import filedialog, messagebox
 
 import ttkbootstrap as ttk
 
-from . import APP_SITE, APP_VENDOR, APP_VERSION, theme
+from . import (
+    APP_COPYRIGHT,
+    APP_LICENSE,
+    APP_LICENSE_NAME,
+    APP_SITE,
+    APP_VENDOR,
+    APP_VERSION,
+    theme,
+)
 from .config import ConfigManager, is_valid_url, normalize_url
 from .crawler import CrawlerEngine
 from .database import DatabaseManager
@@ -2221,13 +2232,16 @@ class App:
                 "元素选择/CSS 选择器、链接体检与结构化导出。")
         ttk.Label(box, text=desc, style="App.TLabel", justify="center",
                   wraplength=400).pack(pady=(0, 14))
-        ttk.Label(box, text=f"开发者: {APP_VENDOR}", style="App.TLabel").pack()
+        ttk.Label(box, text=f"开发者：{APP_VENDOR}", style="App.TLabel").pack()
         site = tk.Label(box, text=APP_SITE.replace("http://", ""), bg=theme.SURFACE,
                         fg=theme.PRIMARY, font=theme.font(10, bold=True), cursor="hand2")
         site.pack(pady=6)
         site.bind("<Button-1>", lambda e: webbrowser.open(APP_SITE))
-        ttk.Label(box, text=f"© 2026 {APP_VENDOR}. 保留所有权利。",
-                  style="Muted.TLabel").pack(pady=(10, 0))
+        ttk.Label(box, text=f"许可证：{APP_LICENSE_NAME}（{APP_LICENSE}）",
+                  style="Muted.TLabel", wraplength=400,
+                  justify="center").pack(pady=(10, 0))
+        ttk.Label(box, text=f"{APP_COPYRIGHT}. 保留所有权利。",
+                  style="Muted.TLabel").pack(pady=(4, 0))
         win.update_idletasks()
         x = (win.winfo_screenwidth() - win.winfo_width()) // 2
         y = (win.winfo_screenheight() - win.winfo_height()) // 2

@@ -1,3 +1,6 @@
+# Copyright (C) 2026 智维ITMSKY
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """轻量日志工具：文件 + 控制台分级输出。"""
 
 from __future__ import annotations

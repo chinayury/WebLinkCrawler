@@ -1,3 +1,6 @@
+# Copyright (C) 2026 智维ITMSKY
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """网络边界防护：协议、主机与重定向目标校验。"""
 
 from __future__ import annotations

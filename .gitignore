@@ -8,6 +8,9 @@ build/
 dist/
 release/
 *.spec
+
+# PyInstaller 版本资源（由 packaging/make_version_info.py 生成）
+packaging/version_info.txt
 .venv/
 venv/
 env/
