@@ -1,0 +1,72 @@
+{
+  "enabled": true,
+  "multi_url": {
+    "enabled": true,
+    "batch_import": true,
+    "url_validation": true
+  },
+  "crawling_depth": {
+    "enabled": true,
+    "depth": 1
+  },
+  "crawl_limits": {
+    "max_pages": 200,
+    "concurrency": 8
+  },
+  "network_policy": {
+    "respect_robots": true,
+    "max_html_bytes": 5242880,
+    "max_redirects": 5,
+    "block_private_redirects": true,
+    "block_private_targets": true
+  },
+  "exclude_rules": {
+    "enabled": false,
+    "patterns": [],
+    "use_regex": false
+  },
+  "element_crawling": {
+    "enabled": true,
+    "css_selector": ""
+  },
+  "file_filters": {
+    "enabled": true,
+    "size_filter": {
+      "enabled": false,
+      "min_size": 0,
+      "max_size": 0
+    },
+    "time_filter": {
+      "enabled": false,
+      "days": 7
+    }
+  },
+  "anti_anti_crawl": {
+    "enabled": true,
+    "dynamic_ua": true,
+    "ua_list": [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15"
+    ],
+    "proxy": {
+      "enabled": false,
+      "type": "http",
+      "proxy_list": []
+    },
+    "cookies": {
+      "enabled": false,
+      "cookie_list": []
+    },
+    "request_strategy": {
+      "enabled": true,
+      "interval": 2,
+      "retries": 3,
+      "timeout": 10
+    }
+  },
+  "resumable_crawling": {
+    "enabled": true
+  }
+}

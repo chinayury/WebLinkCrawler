@@ -1,0 +1,4 @@
+#可选：真实网页预览与元素点选（不安装则自动降级为 HTML结构预览）
+#注意：PyQtWebEngine需与 PyQt5版本匹配。
+PyQt5==5.15.11
+PyQtWebEngine==5.15.7

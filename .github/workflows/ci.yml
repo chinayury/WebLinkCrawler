@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-smoke:
+    name: Build & smoke (${{ matrix.os }} / py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.12"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install Tk and Xvfb (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install build
+
+      - name: Build wheel and sdist
+        run: python -m build --outdir dist
+
+      - name: Install built wheel
+        run: |
+          python -c "import glob, subprocess, sys; wheels = glob.glob('dist/*.whl'); assert wheels, 'no wheel built'; subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--force-reinstall', '--no-deps'] + wheels)"
+
+      - name: Smoke - version and metadata
+        run: |
+          python -c "import weblinkcrawler as w; assert w.APP_VERSION == '0.1.0', w.APP_VERSION; print('APP_VERSION=' + w.APP_VERSION)"
+
+      - name: Smoke - core imports
+        run: |
+          python -c "import weblinkcrawler.config, weblinkcrawler.crawler, weblinkcrawler.database, weblinkcrawler.security, weblinkcrawler.logutil, weblinkcrawler.icons, weblinkcrawler.theme, weblinkcrawler.preview; print('CORE_IMPORT=OK')"
+
+      - name: Smoke - GUI import
+        run: |
+          python -c "import weblinkcrawler.app; print('GUI_IMPORT=OK')"
+
+      - name: Smoke - GUI toolkit (Linux, headless)
+        if: runner.os == 'Linux'
+        run: |
+          xvfb-run -a python -c "import tkinter as tk; root = tk.Tk(); root.destroy(); print('TK_HEADLESS=OK')"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ runner.os }}
+          path: dist/*
+          retention-days: 1
+          if-no-files-found: error

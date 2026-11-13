@@ -1,0 +1,297 @@
+# 变更日志（CHANGELOG）
+
+>规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
+
+## [v0.1.0] -2026-11-12 ·视觉体系三轮重构（「宣纸·墨黛」替代「青瓷·赭石」）
+
+> 版本号仍锁定 `v0.1.0`；本轮仅替换视觉体系与图标，功能零变更、对外契约不变。
+
+### 视觉体系三轮重构
+- 主题更替为「**宣纸·墨黛**」（Rice Paper & Ink）：主色由青瓷绿改为中性墨 `#22262B`，强调色改为朱印 `#B03A2E`（仅用于品牌标记、主操作、失效计数）；画布 `#FAF8F3`、面板 `#FFFFFF`、凹陷 `#F1EEE6`；**去掉左侧深色导航栏**，改浅色纸底 `#F5F2EA` + 1px 右边线，激活项用 2px 朱红左杠 + 加粗文字。
+- **造型语言双轴切换**：面板去掉「左侧色条 + 通栏标题带」，改「通栏浅标题带 + 底部 1px 细线」；按钮改「实底墨色 / 1px 描边 / 纯文字链」三档（新增 `Ghost.TButton` 文字链档）；表格只留横向细线（无竖线、无斑马纹，行高 30）。
+- **配色方案**：固定 3 套循环（宣纸·墨黛 / 黛蓝·琥珀 / 陶红·亚麻），旧默认「青瓷·赭石」随本轮退场；两套旧方案补齐浅色导航文字令牌，切换后导航不再出现不可见文字。
+- **图标风格全面换新**：由 2px 直角折线改为「墨线」——1.6/1.2/1.9px 三级笔宽、圆头圆角、24×24 网格 2px 内缩、圆角矩形 + 圆弧图元；图标 32 → **35 个**（新增 `seal` 品牌标记 / `refresh` 续爬 / `close` 取消全选）。
+- **修复既有渲染缺陷**：`icons.photo()` 的 `PhotoImage.put` 传入扁平颜色列表，被 Tcl 解释为「多行纯色」，导致界面图标整体不显示（旧版同缺陷）；改为「行列表」结构并新增出墨回归断言。
+- 语义色降饱和（成功 `#3F7A4E` / 警示 `#A87A16` / 危险 `#A8443C` / 信息 `#4A6E8A`），使五级链接状态色成为近单色画布上唯一高饱和信号。
+- 规格与实现一一对应：`docs/视觉重构规格-v0.1.0.md`；问题闭环：`docs/开发日志.md`。
+
+### 测试
+- `tests/test_core.py` 新增 `VisualContractTests` 5 项（既有 32 个图标名契约、图标出墨回归、配色机制与令牌还原、纸墨基底令牌、新样式存在性）；`python -m pytest tests/test_core.py -q -p no:cacheprovider` → 22 passed；`tests/test_hardening.py tests/test_integration.py` → 28 passed，无回归。
+
+### 本轮修订（v0.1.0 收官）：引擎 9 项借鉴点落地 + 配置加固 + 交付文档与门禁
+
+> 本条为**追加**小节，上方视觉体系三轮重构与全部历史条目不作任何修改。版本号仍锁定 `v0.1.0`（`src/weblinkcrawler/__init__.py` `APP_VERSION = "0.1.0"`）。借鉴点编号口径见 `docs/同类项目借鉴清单-v0.1.0.md` 第四节（本轮采纳 9 项：A-01 / A-02 / B-01 / C-01 / C-03 / D-01 / E-01 / G-01 / G-02）。
+
+**改动范围**：抓取引擎（请求节奏、体检分级、解析分层、连接兼容、去重口径）、配置体系、数据库、测试与文档；GUI 布局、菜单、页面结构与对外接口契约不变。
+
+**受影响文件与详情**
+
+- `src/weblinkcrawler/crawler.py`
+  - **A-01**：HEAD 取到 405/501（403 为 opt-in）时回退一次**只读 GET**（`read_body=False`，不读 body、不新增线程），用 GET 的状态码重新分级；GET 自身失败保留原 HEAD 判定。消除「HEAD 被拒站点整站误报」。
+  - **A-02**：「视为正常」状态码集合提为可配（`link_check.ok_status_codes`，默认 `[200,206,999]`），保留 2xx 基线且判定早于 3xx；state key 仍为五个，展示/导出零改动。
+  - **B-01**：Content-Type 闸门，仅 `text/html` / `application/xhtml+xml` / `text/plain` 解析子链接，与文件大小/时限过滤分层，互不重复过滤。
+  - **C-01**：per-host 请求节流，簿记由单一 `float` 改为 `{host: 下次可请求时刻}`；同一主机实际间隔在 `interval ~ 2×interval` 间随机，不同主机互不等待；等待在锁外按 ≤0.25s 切片，可被 stop 即时唤醒。
+  - **C-03**：robots 按 root 做 in-flight 去重（同站一次在飞、跨站并行、全局一份缓存），缓存保持普通 dict + 256 上限 FIFO 淘汰，不引 LFU。
+  - **D-01**：429/503/408 先按 Retry-After（纯数字或 HTTP 日期）或指数退避重试，统一按 `retry_after_cap`（默认 30s）封顶，次数用尽按失败处理且**不抽取错误页链接**；所有等待改为 `_stop_event.wait()`，停止即时生效。
+  - **E-01**：遗留服务器 SSL 兼容适配器（`set_ciphers("DEFAULT:@SECLEVEL=1")`，失败回退 `DEFAULT`），**同时覆写 `init_poolmanager` 与 `proxy_manager_for`**；开关 `network_policy.ssl_compat_legacy_servers` 默认关闭，`verify=True` 与逐跳安全校验不变。
+  - **G-01 / G-02**：归一化只做去重键——新增 `canonical_key()` 纯函数与 query 噪声参数黑白名单（黑名单 24 项、白名单 20 项，白名单优先）；抓取与 `_normalize_links` 同时维护「原始链接 + canonical key」双集合，导出与 `crawled_links.link` 一律写原始 URL。
+- `src/weblinkcrawler/config.py`
+  - 新增 `content_gate`、`link_check`、`dedup_query` 三个配置段，以及 `network_policy.ssl_compat_legacy_servers`、`anti_anti_crawl.request_strategy.retry_after_cap` 两个键；旧配置缺键由 `deep_merge` 自动补齐并回写。
+  - `normalize_url()` 仅在输入确为「裸主机名/路径」时才补协议，`javascript:` / `data:` / `mailto:` 等伪协议不再被改写成畸形 `https://` 地址；新增主机名格式校验（IPv4 / 方括号 IPv6 / 域名）。
+  - 新增 `throttle_interval()`，让 `request_strategy.interval` 同时承担正常请求节流职责（此前仅作重试退避基数）。
+- `src/weblinkcrawler/database.py`
+  - 新增 `link_checks` 表（体检结果）与 `idx_checks_task` 索引；旧库启动时自动补齐缺失列（表名/列名过标识符白名单）。
+- `tests/`
+  - 新增 `tests/test_v010_enhancements.py` **62 项**，按借鉴点分九类：`HeadFallbackTests` 9、`OkStatusCodesTests` 5、`ContentGateTests` 6、`PerHostThrottleTests` 6、`RobotsInflightTests` 4、`RetryAfterTests` 12、`SslCompatTests` 6、`CanonicalKeyTests` 12、`ConfigMigrationTests` 2；`tests/test_core.py` 增补 `VisualContractTests` 5 项。测试集现为 **112 项**（`test_core.py` 22 + `test_hardening.py` 10 + `test_integration.py` 18 + `test_v010_enhancements.py` 62，本次实测收集数）。
+  - **门禁实测**：`python -m pytest tests/ -q -p no:cacheprovider` → **112 passed in 62.94s**（本次会话在项目根目录真实执行）。
+- `docs/`
+  - 新增 `docs/功能使用说明-v0.1.0.md`、`docs/环境部署教程-v0.1.0.md`、`docs/功能优化与新增日志-v0.1.0.md`、`docs/BUG修复清单-v0.1.0.md`，均依据最终代码逐行核对重写。
+  - 说明：原 `docs/开发日志.md`（视觉重构 V-01~V-09 过程日志）已由文档工程师合并为 `docs/开发日志-v0.1.0.md`（增收引擎 Q-01~Q-11），本日志历史条目中出现的旧文件名即指向该文件。
+
+**未纳入本轮（如实记录）**
+
+- 借鉴清单「待排期」5 项未实现：C-02（per-host 间隔 UI 语义与覆盖表）、D-02（退避移出 worker 的延迟重入队）、F-01（JS 局部发现）、H-01（`crawled_pages` 唯一索引）、I-01（robots Sitemap 种子 + source 字段）。
+- 借鉴清单「不采纳」6 项：R-01 ~ R-06。
+- 落地方式与借鉴清单建议的偏差（以最终代码为准）：`retry_after_cap` 与 `ssl_compat_legacy_servers` **未进 GUI**，只能在 `enhanced_config.json` 维护；「请求策略」中「间隔(s)0~60」标签未改名为「每站点请求间隔」，但引擎侧节流已按主机生效。
+
+**已知未修复安全项（详见 `docs/BUG修复清单-v0.1.0.md` 与 `docs/安全审查报告-v0.1.0.md`）**
+
+- D-01（高）：运行环境 `urllib3` 2.7.0 落后于锁定清单 2.8.0（含 3 项已公开 PYSEC），处置命令 `python -m pip install -U "urllib3==2.8.0"`。
+- F-01（中）CSV 公式注入、F-02（中）CGNAT `100.64.0.0/10` 漏网、F-03（中）DNS 解析失败即放行、F-06（低-中）配置驱动正则拒绝服务、F-07（低）ftp/sftp 零请求直接判可用、F-08（低）GUI 事件泵异常缺口、F-10（信息）`is_valid_url` 凭据分支为死代码。
+
+**变更 / 不兼容**
+
+- 新增配置键由 `deep_merge` 自动补齐，旧 `enhanced_config.json` 无需手工修改。
+- 数据库新增 `link_checks` 表，旧 `crawling_progress.db` 可直接使用。
+- `CrawlerEngine`、`ConfigManager`、`theme`、`icons` 对外名称与签名不变；GUI 页面结构、菜单、快捷键不变。
+
+### 安全加固轮（v0.1.0 收官修订二：安全审查发现全量处置）
+
+> 本条为**追加**小节，上方内容与全部历史条目不作任何修改。版本号仍锁定 `v0.1.0`。
+> 依据：`docs/安全审查报告-v0.1.0.md` 发现清单（F-01 ~ F-12、D-01）；问题闭环记录见 `docs/开发日志-v0.1.0.md` 第五节（S-01 ~ S-10）。
+
+**安全修复（源码）**
+
+- `src/weblinkcrawler/security.py`
+  - **F-02**：显式拦截 CGNAT `100.64.0.0/10`；IPv4-mapped IPv6（`::ffff:x.x.x.x`）按内层 IPv4 判定，堵住映射绕过。
+  - **F-03**：`resolved_is_private` 三态化（True / False / None=解析失败），解析失败不再假称公网。
+- `src/weblinkcrawler/crawler.py`
+  - **F-01**：新增 `_csv_cell()` 公式注入中和（`=` `+` `- ` `@` 或制表/回车开头的单元格加单引号前缀），`_export_csv` 五个文本列全部过闸。
+  - **F-03**：新增 `_host_is_blocked_private()`（字面 IP 零成本判定 + 域名 per-host 解析缓存 + fail-closed）；`_check_redirect_target` 改走该方法，解析失败一并拦截。
+  - **F-04**：`_perform` 对所有抓取目标执行 `validate_target(..., allow_private=not block_private_targets)`。
+  - **F-07**：ftp/sftp 体检由 `('ok', None)` 改为 `('error', 'ftp/sftp 协议不支持自动体检')`。
+  - **F-09**：robots 读取/判定两处异常日志由 debug 升为 warning（fail-open 行为不变，留痕可见）。
+- `src/weblinkcrawler/config.py`
+  - **F-04**：`network_policy` 新增 `block_private_targets`（默认 **true**，内网站点置 false 放行）。
+  - **F-06**：`excluded()` 正则改按 pattern 编译缓存（`_compiled_exclude`），保留 512 字符长度上限与 `re.error` 容错。
+  - **F-10**：`is_valid_url` 文档字符串明确职责边界（语法校验；私有地址返回 True 为刻意设计；策略由引擎负责）。
+- `src/weblinkcrawler/app.py`
+  - **F-08**：`_poll_events` 单事件异常隔离（`log.exception` 留痕后继续排空，60ms 续跳不再被打断）。
+- `src/weblinkcrawler/icons.py`
+  - **F-12**：`icon()` 缓存键纳入当前默认 Tk 根对象，按根分区；单根产品行为不变（加固轮测试新发现）。
+
+**配置与模板**
+
+- `enhanced_config.example.json` 的 `network_policy` 增加 `block_private_targets` 占位键。
+
+**测试**
+
+- 新增 `tests/test_security_hardening.py` **23 项**（CSV 中和 3、私有网段 3、解析三态 4、目标策略 4、排除正则 3、ftp 1、职责边界 1、robots fail-open 1、事件泵隔离 1）。
+- `tests/test_integration.py`、`tests/test_v010_enhancements.py` 的本地靶机按策略显式放行私有目标（与既有 `block_private_redirects` 测试处理一致）；`ConfigMigrationTests` 增补新键回填断言。
+- **门禁实测**：`python -m pytest tests/ -q -p no:cacheprovider` → **135 passed**（原 112 + 新增 23；本轮复跑实测 `135 passed in 74.87s` 起，多次复跑均通过）。
+
+**测试基础设施（F-13，加固轮测试执行中新发现）**
+
+- 新增 `tests/conftest.py`：测试会话禁用 cyclic GC。修复全量运行约每 3 次一次的 Windows 致命崩溃
+  （`code 0x80000003`，非主线程 cyclic GC 与 Tk 对象/线程创建竞争，崩溃点漂移、进程整体死亡）；
+  引用计数回收为确定性路径，全部用例显式清理，禁用不影响任何用例判定与覆盖。
+- `src/weblinkcrawler/icons.py` 新增 `_ALL_IMAGES` 强引用注册表：`photo()` 产出的每个 PhotoImage
+  一律登记，产品侧杜绝「工作线程 GC 回收 Tk 对象」的同类致命路径（客户端进程内图标规模有界）。
+- `test_integration.py` / `test_v010_enhancements.py` 的 `_Server` 增加 `block_on_close=False`、
+  `_closing` 关闭标志与 teardown GC 暂停，收窄 socketserver 关闭竞态。
+- 修复实证：处置后连续 7 次全量复跑 **135 全绿、零崩溃**。测试入口统一为 `python -m pytest tests/`
+  （conftest 随之加载；直接运行单个测试文件时不加载，GC 未禁用属已知环境限制）。
+
+**依赖（D-01，环境处置）**
+
+- 运行环境 `urllib3` 2.7.0 → **2.8.0**（`python -m pip install urllib3==2.8.0`），与 `requirements.txt` 锁定一致，消除 3 项已公开 PYSEC；`pip-audit -r requirements.txt` 复扫 **0 漏洞**。整机扫描另报的 73 项经逐包核对均属工作区内其他项目的共享依赖，不在本项目依赖树（安全报告 §6.3 如实声明）。
+- **2026-11-13 复扫新增（D-03）**：漏洞情报库更新后发现 `soupsieve` 2.9.2 新公开 2 项漏洞
+  （CVE-2026-126190 / CVE-2026-126192），`requirements.txt` 锁定升级为 **4.0.0**（最小全解版本），
+  运行环境与测试沙箱同步升级；bs4 选择器兼容冒烟通过、全量测试 135 项真实执行通过；
+  复扫 `pip-audit -r requirements.txt` → **No known vulnerabilities found**。升级依据见安全报告 §6.5。
+
+**文档**
+
+- `docs/安全审查报告-v0.1.0.md` 增补第六节「安全加固轮修复记录」并更新发现清单状态（13 项发现全部处置，未修复清零）；`docs/BUG修复清单-v0.1.0.md`、`docs/功能优化与新增日志-v0.1.0.md`、`docs/开发日志-v0.1.0.md`、`docs/测试报告-v0.1.0.md`、`docs/风险台账-v0.1.0.md`、`docs/交付验收清单-v0.1.0.md`、`README.md`、`docs/项目介绍-v0.1.0.md` 同步对齐（测试数量 112 → 135）。
+
+**残余风险（如实记录，见安全报告 §6.4 与风险台账）**
+
+- DNS 重绑定 TOCTOU：校验与连接两次解析之间仍有窗口，彻底方案为按 IP 建连，列入待排期。
+- 病态正则执行超时：512 字符内的灾难性回溯无语言级解法，建议后续引入 `re2`。
+- F-05（SSL 兼容开关默认关）、F-09（robots fail-open）为明示的设计取舍。
+
+## [v0.1.0] -2026-11-10 ·正式稳定版（二次修订：视觉二轮定版 + 安全加固）
+
+> 本条目为 v0.1.0 的二次修订记录。版本号仍锁定 `v0.1.0`（`APP_VERSION = "0.1.0"`），
+> 覆盖 2026-11-08 的首版内容；首版条目保留于下方，不作修改。
+
+### 视觉体系二轮定版（替代初版「霜蓝·链接工坊」）
+- 主题更名并重构为「**青瓷·赭石**」：主色 `#2F6F62`（青瓷绿）、强调 `#C2703A`（赭石）、画布 `#F1EFE7`（暖砂白）、导航栏 `#1F4A43`（深青瓷）。
+- **版式重构**：由「顶栏 + 单列滚动卡片」改为「**左侧分组导航栏 + 右侧分页面板**」，四页：采集任务 / 结果总览 / 运行日志 / 系统配置。
+- **配色方案系统**：新增 3 套完整配色（青瓷·赭石 / 黛蓝·琥珀 / 陶红·亚麻），修复「切换主题」无视觉效果的问题（BUG-02）。
+- **图标扩充**：自绘线性图标由 24 个增至 **32 个**，新增 radar / pulse / rules / compass / grid / doc / spark / layers。
+- **标题文案重设计**：6 个区块标题 + 副标题全部更新；新增「系统配置」页。
+- 顶栏统计芯片新增「**失效**」计数；新增 `Ctrl+1/2/3` 页面切换快捷键。
+- 全部为浅色主题，无暗色主题、无背景图。
+
+### 引擎与健壮性修复
+- **robots.txt 通配与 Allow 优先级**（BUG-03/04）：支持 `*` 通配、`$` 结束锚定，按 RFC 9309 最长匹配优先判定。
+- **robots.txt SSRF 缺口**（BUG-05）：改为主进程手动跟随重定向并逐跳安全校验。
+- **请求节流落地**（BUG-07）：`request_strategy.interval` 从「仅重试退避基数」改为「同时作为全局请求节流」，可被 stop 及时唤醒。
+- **文件过滤并发化**（BUG-06）：由串行逐条 HEAD 改为线程池并发探测。
+
+### URL 处理与校验
+- **伪协议识别**（BUG-08）：`javascript:` / `data:` 等不再被改写为畸形 `https://` 地址。
+- **主机名合法性校验**（BUG-09）：IPv4 / 方括号 IPv6 / 域名格式校验。
+- **校验口径统一**（BUG-10）：`URL 验证` 与抓取路径统一先规范化再校验。
+
+### 导入导出
+- **多编码导入**（BUG-11）：URL 清单导入支持 UTF-8 / GBK / GB18030 / BIG5 / latin-1 自动识别。
+
+### 安全
+- **依赖升级**（SEC-01）：`pillow` 12.3.0 → **13.0.0**，消除 39 项已公开 CVE/PYSEC/GHSA；`pip-audit` 复扫 **0 漏洞**。
+- **DDL 标识符白名单**（SEC-02）：表名 / 列名增加格式校验。
+- **代理类型白名单**（SEC-03）：限定 http/https/socks4/socks5/socks5h。
+
+### 测试
+- 测试集由 33 项扩充至 **45 项**（单元 17 + 加固 11 + 集成 17），全部真实执行通过（`45 passed in 34.26s`）。
+
+### 文档
+- 全部 15 份交付文档依据最终代码重写，与 v0.1.0 代码逐项对齐。
+
+## [v0.1.0] -2026-11-08 ·正式稳定版（版本纪元重置）
+
+### 发布说明
+-版本号强制锁定 **v0.1.0**；该编号为正式纪元起点，覆盖旧开发迭代 v0.1–v0.6编号。
+-完整保留 v0.6功能：单/多 URL、筛选、文件类型编辑、深度抓取、反反爬、断点续爬、元素选择/CSS选择器、主题切换、导入导出。
+
+### 新增
+-全新「霜蓝·链接工坊」浅色视觉体系：顶栏、统计芯片、单列滚动卡片、角色化按钮、全套自绘线性图标；无暗色主题。
+-结果表格化：编号 /链接 /类型 /协议 /深度 /状态，支持表头排序，保留兼容文本视图。
+-链接体检：并发 HEAD，状态分级（可用/重定向/受限/失效/异常），结果入库。
+-结构化导出：CSV / JSON（TXT保持旧版格式）。
+-有界并发深度抓取（默认并发8）+最大抓取页数上限。
+-排除规则（通配 /正则）。
+-文件大小 /最后修改时间过滤真正接入抓取流程（HEAD元数据）。
+-断点续爬入口与真实恢复：复用任务、跳过已访问页面、合并已有结果。
+-网络安全策略：响应体上限、重定向上限、重定向内网拦截开关、Robots开关。
+-统一日志文件与界面分级日志。
+-完整交付文档与测试（详见 docs、docs-archive）。
+
+### 修复
+-旧配置缺键（如 `element_crawling`）导致启动 `KeyError`崩溃 →深合并迁移。
+-子线程直接操作 Tk控件导致偶发崩溃 →事件队列 +主线程调度。
+-强制 UTF-8解码导致中文站点乱码 →按响应头 / apparent_encoding智能解码。
+-文件扩展名判断受查询参数影响 →按 URL path扩展名判断。
+-数值输入非法导致崩溃 →统一范围校验与友好提示。
+-停止任务被误标为 completed →正确标记 stopped，可续爬。
+-抓取记录入库字段错位 →修正批量行字段顺序。
+-页面无链接时 CSS选择器空结果误判 →回退整页。
+- “暂停”实为停止、恢复即重跑 →协作式暂停/恢复。
+- SQLite连接关闭不彻底、临时目录被占用 →连接生命周期收敛。
+-关于窗口版本号与真实版本不一致 →统一读取 `APP_VERSION`。
+
+### 安全
+-手写重定向跟随，逐跳校验协议/主机/凭据/端口，阻止不安全跳转。
+- URL凭据剥离；日志脱敏（不记录查询串中的令牌）。
+-响应体大小上限，避免大文件/恶意页面耗尽内存。
+-参数化 SQL，迁移语句仅使用内部常量。
+-配置敏感文件权限收紧（POSIX0600；Windows由 ACL /忽略规则配合）。
+-依赖版本锁定，安全审查报告见 `docs/安全审查报告-v0.1.0.md`。
+
+### 变更 /不兼容
+-代码由单文件拆分为 `src/weblinkcrawler`包；入口命令不变：`python WebLinkCrawler.py`。
+-数据库沿用旧表结构并新增 `link_checks`，旧 `crawling_progress.db`可直接使用。
+-主题切换仅在浅色主题间切换，不再提供暗色主题（按 v0.1.0视觉要求）。
+-新增配置键自动补齐；旧 `enhanced_config.json`无需手工修改。
+
+### 验证
+-自动化测试：单元 +集成 +回归（见 `docs/测试报告-v0.1.0.md`）。
+-测试在临时目录运行，不触碰真实生产数据库。
+-具体执行结果以测试报告为准，未通过的项不会标记为通过。
+
+---
+
+## [v0.1.0] -2026-11-12 · 文档修订轮勘误（仅追加，不改写历史条目）
+
+> 本小节为 2026-11-12 文档修订轮的统一勘误记录。按 AGENTS.md「CHANGELOG 只追加、不修改历史记录」规则，历史条目（含上文 2026-11-12 本轮条目）原文一律不动，勘误以本小节为准。
+
+### 路径勘误
+- **勘误 1（坏链）**：上文 2026-11-12 本轮条目「规格与实现一一对应：`docs/视觉重构规格-v0.1.0.md`；问题闭环：`docs/开发日志.md`」中的 `docs/开发日志.md` 已按归档要求合并删除并更名为 `docs/开发日志-v0.1.0.md`（改名映射见上文「文档」小节说明），该路径为**全库唯一坏链**，正确路径为 `docs/开发日志-v0.1.0.md`。实测 `grep -rln "开发日志\.md" --include="*.md"`（排除 `docs-archive`、`versions`）仅命中 5 个文件，其余 4 处均为「原 `docs/开发日志.md` 已合并删除」的历史说明文字，非坏链（`docs/风险台账-v0.1.0.md` E-03 已按此收窄）。
+
+### 数字勘误
+- **勘误 2（pillow 漏洞数）**：`requirements.txt:21` 注释与 `docs/项目介绍-v0.1.0.md` §8、`docs/需求规格-v0.1.0.md` §2.5 S1 原写「39 项」，实测 `python -m pip_audit -r <tmp>/pillow_1230.txt`（内容仅 `pillow==12.3.0`）→ **Found 40 known vulnerabilities in 1 package**（20 项 CVE + 19 项 PYSEC + 1 项 GHSA，修复版均为 13.0.0），已统一改为 40 项（本条目第 97 行「消除 39 项已公开 CVE/PYSEC/GHSA」为历史条目，按只追加规则保留原文）。
+- **勘误 3（配色令牌数）**：`docs/视觉重构规格-v0.1.0.md` §7、`docs/版本迭代说明-v0.1.0.md` §3.7 原写两套旧配色「共 27 项」覆盖，实测 `len(theme._BASE_COLORS) == 28` 且 `PALETTES["黛蓝·琥珀"]` / `PALETTES["陶红·亚麻"]` 各覆盖 28 个键，已改为 28 项（= `_BASE_COLORS` 全部条目）。
+- **勘误 4（交付文档数量）**：`docs/需求规格-v0.1.0.md` §7、`version_history.md` v0.1.0 条目原写「`docs/` 下 8 份 / 5 份文档」，实测 `docs/` 下共 **16 份** `.md`，已改为 16 份并补全列举。
+- **勘误 5（绑定站点数）**：`docs/开发日志-v0.1.0.md` 变更-11、`docs/版本迭代说明-v0.1.0.md` §3 引言与 §4、`docs/交付验收清单-v0.1.0.md` §1.1 原写「25 处 `.bind()`/`add_command`/`accelerator`/`yscrollcommand`」，实测当前 `src/weblinkcrawler/app.py` 为 40 处（`.bind(` 22 + `add_command(` 9 + `accelerator` 2 + `yscrollcommand` 7；源码行口径同为 40 行），已统一改为 40 处；重构前 `app.py` 未随仓库留存，「25 处」无法复现（`versions/WebLinkCrawler_v0.6.py` 同口径 19 行）。
+- **勘误 6（重试用尽后的处置）**：`docs/BUG修复清单-v0.1.0.md` Q-08、`docs/开发日志-v0.1.0.md` Q-08 原写「次数用尽按 blocked 记录且不抽链」，实测 `crawler.py:334-336` 次数用尽只 emit `[放弃重试]` 并 `return None`，调用方 `crawler.py:1328-1330` emit `[请求失败]` 并 `return target_url, []`，抓取路径不产生任何 check 记录，已改为「按失败处理（记 `[请求失败]` 日志、不抽链），不产生任何体检记录」。
+- **勘误 7（节流簿记淘汰策略）**：`docs/开发日志-v0.1.0.md` Q-05、`docs/BUG修复清单-v0.1.0.md` Q-05、`docs/版本迭代说明-v0.1.0.md` §3.3、`docs/需求规格-v0.1.0.md` §4 原写「簿记超 4096 FIFO 淘汰」，实测 `crawler.py:596-602` 为容量超过 `_THROTTLE_MAX_HOSTS=4096` 时一次性弹出最旧的一半（2048 条，容量保护），已改为「超 4096 时丢弃最旧一半（容量保护）」。
+- **勘误 8（配置项计数口径）**：`docs/环境部署教程-v0.1.0.md` §6.1 原写缺「五个键」，`docs/风险台账-v0.1.0.md` E-07 与 `docs/交付验收清单-v0.1.0.md` §1.3/§2.1 原写缺「14 个键」，实测缺的是 5 个配置项（`content_gate` / `link_check` / `dedup_query` 三段 + `retry_after_cap` + `ssl_compat_legacy_servers` 两键），按段名计入共 14 键、按叶子键计共 11 键，三处已统一为同一口径并注明基数。
+- **勘误 9（截图产物数）**：`docs/交付验收清单-v0.1.0.md` §2.3 原写「`tests/_probe_*.png`、`tests/_shot.py` 产物（8 张）」，实测 `tests/` 下 `_probe_*.png` 仅 4 个文件，全部非 `_app_*.png` 的 PNG 合计 7 个，已改为 7 张并列名。
+- **勘误 10（README 与归档漂移）**：`docs/风险台账-v0.1.0.md` E-01 与 `docs/交付验收清单-v0.1.0.md` §1.1 原把「README 与最终代码漂移」列为未修事项；实测 `README.md` 已于 2026-11-12 12:46:49 更新（`:7`「宣纸·墨黛」、`:74`「112 项用例」、`:95`/`:125`「35 个图标」），漂移已不存在，E-01 已按台账维护规则追加「已关闭」标注，验收清单漂移计数由 4 处改为 3 处（E-02/E-03/E-07）。
+- **勘误 11（结项归档 README）**：`docs-archive/00-Executive/README-V0.1.0-20261112.md` 原为修复前内容（青瓷·赭石 / 45 项用例 / 32 个图标），已于本次文档修订轮以最终 `README.md` 覆盖；`00-Executive/CHANGELOG-V0.1.0-20261112.md` 与当前 `CHANGELOG.md` 逐字节一致。
+
+### 未随本轮修订处置的事项（如实记录）
+- `src/weblinkcrawler/icons.py:18` 模块 docstring 仍写「既有 32 个图标名全部保留（本轮新增 `seal` / `refresh`，共 34 个）」，实测 `icons.available()` 返回 35 项（含 `close`）；本轮任务范围限定为「只改文档、绝不改代码」，故该 docstring 未修正，5 份文档中的登记项（视觉重构规格 §0/§8.2、需求规格 A14、风险台账 E-02、version_history.md、BUG修复清单）继续有效。
+- 交付包 `app_20261112_125520.zip` 内《交付验收清单》副本为 2026-11-12 12:52:56 快照（14264 字节，SHA-256 `e6f71727f7fc2423b2870734109ff8f4499ceef5bf1d1da6091217065cc4c7b1`），与仓库正式版不一致；本次修订又改动了多份仓库文档，交付前须按同一排除规则重新打包（详见 `docs/交付验收清单-v0.1.0.md` §2.4）。
+
+---
+
+## [v0.1.0] -2026-11-13 · 项目整理：纯代码 + 文档初始版本（非 Git 仓库）
+
+> 本条为**追加**记录，上方全部历史条目不作任何修改。版本号仍锁定 `v0.1.0`（`src/weblinkcrawler/__init__.py` `APP_VERSION = "0.1.0"`）。
+> 依据：通用指令「将项目整理为纯代码 + 文档的初始版本（非 Git 仓库）」。本初始版本按项目方要求**不含测试与归档**。
+
+### 结构调整
+
+- **新增 `src/weblinkcrawler/__main__.py`**：支持 `python -m weblinkcrawler` 启动，等价于原根目录 `WebLinkCrawler.py` 薄启动器，转发至 `weblinkcrawler.app:main`。
+- **新增 `pyproject.toml`**：标准 src 布局（`package-dir = { "" = "src" }`），包名 `weblinkcrawler` 与包目录名一致；声明直接依赖、可选预览依赖（`[preview]`），并注册入口点 `weblinkcrawler = weblinkcrawler.app:main`。
+- **新增 `LICENSE`**：MIT 许可证（与 README 声明一致）。
+- **移除根目录薄启动器 `WebLinkCrawler.py`**：入口统一为 `python -m weblinkcrawler`（或 `pip install -e .` 后的 `weblinkcrawler` 命令），README 与各文档同步更新启动命令。
+- **移除根目录重复文件**：`WebLinkCrawler (2).py`、`WebLinkCrawler (3).py` 为历史残留，非 v0.1.0 交付代码。
+
+### 清理（移除冗余与缓存）
+
+- **Git 相关**：`.gitignore`（本目录非 Git 仓库）。
+- **工具状态**：`.playwright-mcp/`、`.pytest_cache/`、`.vcheck_tmp/`、`.zcode/`。
+- **Python 缓存**：`__pycache__/`（根与包内）、`*.pyc`。
+- **构建/交付包**：`app_20261108_221206.zip`、`app_20261113_191805.zip`、`dist/`。
+- **运行产物**：`crawling_progress.db`、`debug.log`。
+- **敏感配置**：`enhanced_config.json`、`file_type_config.json`（真实运行配置，可能含凭据；保留 `.example.json` 占位模板）。
+- **未使用资源**：`link_scraper_gui.ico`（代码使用自绘图标，不引用此文件）、`screenshots/`。
+- **测试与归档**：`tests/`、`docs-archive/`（按初始版本策略移除）。
+- **历史版本**：`versions/`、`versions (2)/`。
+- **根级文档**：`tool_introduction.md`、`version_history.md`（内容并入 `docs/` 五篇）。
+
+### 文档重写（docs/ 五篇）
+
+按通用指令第五节规范重写，删除重复/过时/与代码不符的旧文档（原 16 份 `-v0.1.0.md` 全部替换为以下 5 篇，内容以源码为准逐项核对）：
+
+- `docs/01-项目介绍与架构.md`：项目概述、核心设计原则、模块结构、分层原则、技术选型。
+- `docs/02-环境部署教程.md`：环境要求、安装方式、目录与文件、配置说明、启动方式、故障排查。
+- `docs/03-功能使用说明.md`：各页面用法、对话框、导出格式、参数说明、已知限制。
+- `docs/04-安全设计说明.md`：安全架构、鉴权、输入校验、凭据管理、路径防护、降级策略、依赖安全、审查发现处置。
+- `docs/05-开发日志.md`：缺陷修复（现象→根因→解决方案 Q-01~Q-11、V-01~V-10、S-01~S-12）、版式变更记录、技术决策。
+
+### 根文件更新
+
+- **`README.md` 重写**：简介、特性、快速开始（入口改为 `python -m weblinkcrawler`）、目录结构、文档索引、视觉体系、数据与隐私、许可。
+- **`CHANGELOG.md`**：本条追加，历史条目不动。
+
+### 验证（真实执行）
+
+- `import weblinkcrawler` 成功；`python -m weblinkcrawler` 入口可加载（GUI 主循环需交互环境，以导入与入口点可解析为验证口径）。
+- `pyproject.toml` 入口点 `weblinkcrawler.app:main` 可导入。
+- 核心功能（配置加载、URL 规范化、去重键、安全校验、链接提取）以模块级调用实跑通过。
+- README 与 docs 中所有源码路径、模块名、命令与磁盘一致；版本号多处声明一致（`__init__.py` / `pyproject.toml` / README / docs 均为 v0.1.0）。
+

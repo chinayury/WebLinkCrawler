@@ -1,0 +1,31 @@
+# WebLinkCrawler v0.1.0运行时依赖（锁定版本；Python >=3.10）
+#
+# 说明：本文件为"锁定清单"，与实际安装环境逐项对齐。
+# 版本升级依据见 docs/安全审查报告-v0.1.0.md 第四节（依赖扫描）与第六节（安全加固轮）。
+#
+# 直接依赖
+requests==2.34.2
+beautifulsoup4==4.15.0
+ttkbootstrap==2.2.7
+PySocks==1.7.1
+# requests传递依赖
+certifi==2026.10.23
+charset-normalizer==3.5.1
+idna==3.19
+urllib3==2.8.0
+# beautifulsoup4传递依赖
+# v0.1.0 安全升级：soupsieve 2.9.2 存在 2 项新公开漏洞（CVE-2026-126190 修复版本 4.0.0、
+# CVE-2026-126192 修复版本 2.10.0；2026-11-13 复扫新发现），最小全解版本为 4.0.0。
+# 实测：beautifulsoup4 4.15.0 + soupsieve 4.0.0 选择器兼容（select/css_select 冒烟通过，
+# 全量测试 135 项通过）；bs4 对 soupsieve 仅要求 >=1.2，4.x 为上游推荐修复版本。
+soupsieve==4.0.0
+typing-extensions==4.16.0
+# ttkbootstrap传递依赖
+#
+# v0.1.0 安全升级：12.3.0 存在 40 项已公开 CVE/PYSEC/GHSA 漏洞
+# （20 项 CVE + 19 项 PYSEC + 1 项 GHSA-78g4-xqwv-q3g8，修复版本均为 13.0.0；
+#  实测：python -m pip_audit -r <tmp>/pillow_1230.txt → Found 40 known vulnerabilities in 1 package），
+# 故强制升级。
+# Pillow 仅为 ttkbootstrap 的传递依赖，本项目代码不直接引用 PIL，
+# 升级不涉及任何调用点变更。
+pillow==13.0.0
