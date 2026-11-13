@@ -155,12 +155,11 @@ WebLinkCrawler-网页链接抓取/
 本工具仅用于合法用途。请遵守目标站点服务条款、robots 协议与当地法律法规，勿用于未授权抓取、绕过访问控制或高频压测。
 
 ## 许可与信息
-
-- 开发者：智维ITMSKY
-- 版权：Copyright (C) 2026 智维ITMSKY
-- 官网：http://www.itmsky.com
-- 许可证：GNU Affero General Public License v3.0 or later（AGPL-3.0-or-later，见 [LICENSE](LICENSE)）
-- SPDX-License-Identifier: `AGPL-3.0-or-later`
+开发者：智维ITMSKY
+版权：Copyright (C) 2026 智维ITMSKY
+官网：http://www.itmsky.com
+许可证：GNU Affero General Public License v3.0 or later（AGPL-3.0-or-later，见 LICENSE）
+SPDX-License-Identifier: AGPL-3.0-or-later
 
 > 本程序是自由软件：你可以遵照 GNU Affero 通用公共许可证第3版或后续版本的规定，重新分发和/或修改它。
 > 本程序旨在广泛共享，但不提供任何担保；甚至不包含适销性和特定用途适用性的默示保证。详情请参阅 GNU Affero General Public License。
