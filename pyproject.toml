@@ -43,7 +43,7 @@ preview = [
 Homepage = "http://www.itmsky.com"
 
 [project.scripts]
-weblinkcrawler = "weblinkcrawler.app:main"
+weblinkcrawler = "weblinkcrawler.cli:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

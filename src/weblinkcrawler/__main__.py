@@ -3,12 +3,15 @@
 
 """支持 ``python -m weblinkcrawler`` 启动入口。
 
-等价于仓库根目录的 ``python WebLinkCrawler.py``：调用
-``weblinkcrawler.app:main`` 启动 GUI。配置与数据库按当前工作目录读写，
-建议从项目根目录启动，以保持配置和数据库位置稳定。
+与 console script ``weblinkcrawler`` 等价，共用 ``weblinkcrawler.cli:main``：
+无参数启动 GUI，``--version`` / ``-h`` 应答版本与帮助。main() 的返回值
+作为进程退出码上抛。配置与数据库按当前工作目录读写，建议从项目根目录
+启动，以保持配置和数据库位置稳定。
 """
 
-from .app import main
+import sys
+
+from .cli import main
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

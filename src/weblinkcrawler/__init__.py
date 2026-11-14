@@ -3,10 +3,12 @@
 
 """WebLinkCrawler —— 网页链接抓取工具。
 
-v0.1.0 正式稳定版。模块化包结构，入口见仓库根目录 WebLinkCrawler.py。
+模块化包结构；入口为 console script ``weblinkcrawler`` 与
+``python -m weblinkcrawler``（见 ``weblinkcrawler.cli``），GUI 实现见
+``weblinkcrawler.app``。版本历史见仓库根目录 CHANGELOG.md。
 """
 
-# 正式稳定版版本号（版本纪元重置，锁定 v0.1.0）
+# 版本号单一事实源之一（与 pyproject.toml version 严格对齐，随发布递增）
 APP_VERSION = "0.1.0"
 APP_NAME = "网页链接抓取工具"
 APP_NAME_EN = "WebLinkCrawler"
