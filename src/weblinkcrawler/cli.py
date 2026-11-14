@@ -31,6 +31,14 @@ def _build_parser():
 
 def main(argv=None):
     """命令行入口；无参数时启动 GUI（与历史行为一致）。"""
+    # Windows 控制台默认 charmap 编码，直接输出中文/全角字符会 UnicodeEncodeError：
+    # 统一切到 UTF-8（不支持的终端用 errors="replace" 兜底，保证永不崩溃）。
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
     _build_parser().parse_args(argv)
     try:
         from .app import main as app_main
