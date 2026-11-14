@@ -2,6 +2,26 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.1.1] -2026-11-14 ·CLI 版本入口、核心测试套件入库与版本号单一来源收敛
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 `v0.1.0` → `v0.1.1`（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 新增
+- **CLI 版本入口**：新增 `src/weblinkcrawler/cli.py`，console script 与 `python -m weblinkcrawler` 共用；`--version` / `-h` 仅依赖包元数据、无需 tkinter 即可应答；无参数行为与历史逐字节一致（仍直接启动 GUI）。tkinter 缺失时输出可操作的安装提示并以退出码 1 结束（此前为 ImportError 回溯）。借鉴 linkchecker / lychee 的 CLI 实践，取舍依据见 `docs/06-调研与借鉴.md`。
+
+### 改进
+- **核心测试套件入库**：新增 `tests/test_core.py`（unittest，15 项，无网络无 tkinter）：版本元数据一致性（APP_VERSION ↔ pyproject 动态比对）、私有地址判定回归（CGNAT `100.64.0.0/10` F-02、IPv4-mapped 回环）、URL 归一化与去重键、CSV 公式注入中和（F-01）、导出格式回退；CI 新增 `python -m unittest discover -s tests` 步骤。
+- **CI 版本断言去硬编码**：冒烟断言由 `APP_VERSION == '0.1.0'` 改为从 `pyproject.toml` 动态读取期望值，版本递增不再需要同步修改 CI（借鉴 lychee）。
+
+### 修复/收敛
+- **版本号硬编码清理**（单一来源收敛至 `pyproject.toml` + `__init__.py`）：docs 01–05 头部「文档版本」改为随代码版本表述；docs/03 界面描述改为 `v{APP_VERSION}` 动态表述；源码 docstring 与 requirements.txt 头部去版本化；历史性陈述（CHANGELOG、「已修复」记录）按仅追加原则保留。
+- 修正失同步引用：`__init__.py` / `__main__.py` docstring 中「仓库根目录 WebLinkCrawler.py」不存在 → 改为指向真实入口 `weblinkcrawler.cli`；requirements.txt 头部指向不存在的「docs/安全审查报告-v0.1.0.md」→ 改为 `docs/04-安全设计说明.md`；crawler.py docstring 引用的 `tests/test_core.py` 此前未入库 → 本轮补齐。
+- **历史遗留说明**：经核实，v0.1.0 条目引用的 `docs/视觉重构规格-v0.1.0.md`、`docs/同类项目借鉴清单-v0.1.0.md`、`tests/test_hardening.py`、`tests/test_integration.py` 未随仓库提交（仓库内不存在）；按「仅追加、不修改历史」原则保留原条目，本轮以 `docs/06-调研与借鉴.md` 与 `tests/test_core.py` 补齐同类能力。
+
+### 兼容性说明
+- 对外契约不变：`crawler.py` 公开接口、GUI 行为、配置/数据库格式零变更；新增 CLI 参数默认值与历史行为逐字节兼容。
+- 本机验证：`python -m compileall src tests` 全绿；`python -m unittest discover -s tests` 15 passed；`weblinkcrawler --version` / `python -m weblinkcrawler --version` / `-h` / tkinter 缺失降级路径（退出码 1）实测通过。
+
 ## [v0.1.0] -2026-11-12 ·视觉体系三轮重构（「宣纸·墨黛」替代「青瓷·赭石」）
 
 > 版本号仍锁定 `v0.1.0`；本轮仅替换视觉体系与图标，功能零变更、对外契约不变。
