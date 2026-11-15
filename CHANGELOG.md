@@ -2,6 +2,19 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.2.1] -2026-11-15 ·第三轮维护循环（轻量轮：调研与复扫记录）
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.2.0 → v0.2.1（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 改进
+- `docs/06` 追加第三轮调研记录（§6）：LibreCrawl（1114★，Web 多租户架构）与 crawlee-python（9674★，autoscaled 并发池）逐条对照——JS 渲染 / SEO 分析 / XLSX 导出 / 动态并发均判定为不同轴、不同形态或依赖红线内不采纳，无新增落地项；**robots Crawl-delay 尊重**经本轮复核确认为已有等价能力（per-host 节流融合、等待可被 stop 打断）。
+- 依赖双口径复扫：锁定清单 pip-audit **0 漏洞**、锁定不变；实装环境与上轮一致、无新漂移。
+- `docs/05` 追加变更-14（轻量轮记录）；0 开放 Issues，CI/Release 全绿。
+
+### 代码影响
+- `src/` 与 CI 配置**零改动**：对外契约、GUI 行为、构建元数据除版本号外不变；本轮仅文档与版本号递增。
+- 验证：`python -m compileall src tests` 全绿；`python -m unittest discover -s tests` 15 passed；CLI `--version` 冒烟通过。
+
 ## [v0.2.0] -2026-11-15 ·支持下限提升至 Python 3.12 与 CI 声明范围验证
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.1.1 → **v0.2.0**（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
