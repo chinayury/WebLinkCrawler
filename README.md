@@ -29,7 +29,7 @@ WebLinkCrawler 是一款面向运维、内容整理与站点巡检场景的 Wind
 
 | 层 | 选型 |
 |---|---|
-| 语言 | Python 3.10+ |
+| 语言 | Python 3.12+ |
 | GUI | Tkinter + ttkbootstrap |
 | 网络 | requests（线程本地 Session，手动跟随重定向） |
 | 解析 | beautifulsoup4（html.parser） |
@@ -42,7 +42,7 @@ WebLinkCrawler 是一款面向运维、内容整理与站点巡检场景的 Wind
 ## 环境要求
 
 - Windows 10/11（主支持），macOS / Linux 可运行
-- Python **3.10+**
+- Python **3.12+**
 - 依赖见 `requirements.txt`（版本全部锁定）
 
 ## 快速启动

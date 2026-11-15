@@ -22,9 +22,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        # 声明支持范围（pyproject requires-python >=3.10，classifiers 到 3.14）的
-        # 两个边界版本全量验证；中段 3.12 由 Release 的 build-dist job 覆盖。
-        python-version: ["3.10", "3.14"]
+        # 声明支持范围（pyproject requires-python >=3.12，classifiers 到 3.14）的
+        # 两个边界版本全量验证；中段 3.13 由 WorkBuddy 本机环境覆盖。
+        python-version: ["3.12", "3.14"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

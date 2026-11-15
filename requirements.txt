@@ -1,4 +1,4 @@
-# WebLinkCrawler 运行时依赖（锁定版本；Python >=3.10）
+# WebLinkCrawler 运行时依赖（锁定版本；Python >=3.12）
 #
 # 说明：本文件为"锁定清单"，与实际安装环境逐项对齐。
 # 版本升级依据见 docs/04-安全设计说明.md（依赖扫描与安全加固轮）。
@@ -18,6 +18,8 @@ urllib3==2.8.0
 # CVE-2026-126192 修复版本 2.10.0；2026-11-13 复扫新发现），最小全解版本为 4.0.0。
 # 实测：beautifulsoup4 4.15.0 + soupsieve 4.0.0 选择器兼容（select/css_select 冒烟通过，
 # 全量测试 135 项通过）；bs4 对 soupsieve 仅要求 >=1.2，4.x 为上游推荐修复版本。
+# 注意：soupsieve 4.x 上游 Requires-Python >=3.11.5，本项目支持下限因此为 3.12
+# （2026-11-15 CI 矩阵扩展时暴露并解决，见 CHANGELOG v0.2.0 与 docs/05 变更-13）。
 soupsieve==4.0.0
 typing-extensions==4.16.0
 # ttkbootstrap传递依赖
