@@ -2,6 +2,22 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.2.0] -2026-11-15 ·支持下限提升至 Python 3.12 与 CI 声明范围验证
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.1.1 → **v0.2.0**（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 破坏性变更（兼容性说明）
+- **Python 支持下限由 3.10 提升至 3.12**（`requires-python >=3.12`；classifiers 移除 3.10/3.11）。原因：锁定清单中 soupsieve 4.0.0（CVE-2026-126190/126192 的最小全解版本）上游 `Requires-Python >=3.11.5`，与 3.10 声明矛盾（该矛盾由 CI 矩阵扩展至 3.10 时暴露）；3.10 已于 2026-10 EOL。pip 在 3.10/3.11 环境安装本项目将被明确拒绝。0.x 系列按 SemVer §4 以 minor 表达破坏性变更，1.0.0 留给 API 稳定里程碑；仓库当前零外部消费者，无实际迁移成本。完整决策链见 `docs/05-开发日志.md` 变更-12 / 变更-13 与 `docs/06-调研与借鉴.md` §5.3 / §5.4。
+
+### 改进
+- CI 矩阵由单一 Python 3.12 扩展为声明支持边界 `[3.12, 3.14]`（三平台 × 双版本，fail-fast 关闭；3.13 由本机 WorkBuddy 环境覆盖）；「版本与元数据」冒烟断言改为正则读取 `pyproject.toml`（移除 3.10 依赖的 `tomllib`）。
+- 维护轮次新增「锁定清单 + 实装环境」双口径 pip-audit 审计：锁定清单 **0 漏洞**（无需变更）；实装环境漂移（共享解释器 pillow 11.3.0，D-01 同型）经评估维持共享环境现状，处置与取舍记录见 `docs/05-开发日志.md` S-13。
+- `docs/06` 追加第二轮调研记录：新角度检索（broken-link-checker 2084★ / linkinator 1288★ / siteone-crawler 1008★ 等）经逐条对照均为不同语言或不同轴，无新增落地项；`docs/05` 追加 S-13 与变更-12/13。
+
+### 代码影响
+- `src/` **零改动**：对外契约、GUI 行为、配置/数据库格式完全不变；本轮变更仅涉及构建元数据（requires-python / classifiers）、CI 矩阵与文档。
+- 验证：`python -m compileall src tests` 全绿；`python -m unittest discover -s tests` 15 passed；CLI `--version` 冒烟通过；CI 三平台 × 双版本全绿（发布前实测）。
+
 ## [v0.1.1] -2026-11-14 ·CLI 版本入口、核心测试套件入库与版本号单一来源收敛
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 `v0.1.0` → `v0.1.1`（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
