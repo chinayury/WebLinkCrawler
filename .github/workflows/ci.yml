@@ -57,7 +57,7 @@ jobs:
 
       - name: Smoke - version and metadata
         run: |
-          python -c "import re, weblinkcrawler as w; expected = re.search(r'^version\s*=\s*\"([^\"]+)\"', open('pyproject.toml', encoding='utf-8').read(), re.M).group(1); assert w.APP_VERSION == expected, (w.APP_VERSION, expected); assert w.APP_LICENSE == 'AGPL-3.0-or-later', w.APP_LICENSE; assert w.APP_COPYRIGHT, 'APP_COPYRIGHT is empty'; print('APP_VERSION=' + w.APP_VERSION + ' LICENSE=' + w.APP_LICENSE)"
+          python -c "import re, weblinkcrawler as w; expected = re.search(r'^version\s*=\s*(\S+)', open('pyproject.toml', encoding='utf-8').read(), re.M).group(1).strip(chr(39) + chr(34)); assert w.APP_VERSION == expected, (w.APP_VERSION, expected); assert w.APP_LICENSE == 'AGPL-3.0-or-later', w.APP_LICENSE; assert w.APP_COPYRIGHT, 'APP_COPYRIGHT is empty'; print('APP_VERSION=' + w.APP_VERSION + ' LICENSE=' + w.APP_LICENSE)"
           python -c "import glob, zipfile; whl = glob.glob('dist/*.whl')[0]; names = zipfile.ZipFile(whl).namelist(); assert any(n.endswith('/LICENSE') for n in names), names; assert any(n.endswith('/NOTICE') for n in names), names; print('WHEEL_LICENSE_FILES=OK')"
           python -c "from importlib.metadata import metadata; md = metadata('weblinkcrawler'); assert md['License-Expression'] == 'AGPL-3.0-or-later', dict(md); print('LICENSE_METADATA=AGPL-3.0-or-later')"
 
