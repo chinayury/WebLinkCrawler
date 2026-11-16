@@ -61,6 +61,21 @@ weblinkcrawler
 
 首次启动会在当前工作目录生成 `enhanced_config.json`、`file_type_config.json` 与 `crawling_progress.db`（空库）。**建议从项目根目录启动**，以保持配置和数据库位置稳定。
 
+### 命令行模式（无 GUI，运维巡检 / 自动化场景）
+
+```bash
+# 同域深度抓取提取链接（depth 为最大下钻深度）
+weblinkcrawler crawl https://example.com --depth 2 --export links.json
+
+# 链接存活体检
+weblinkcrawler check https://example.com https://example.com/about --export checks.json
+```
+
+- 与 GUI 共用同一核心引擎与 `enhanced_config.json` 配置；配置生成于当前工作目录。
+- 默认按安全策略拦截私有/回环地址（含 127.0.0.1）；需抓内网站点时在
+  `enhanced_config.json` 将 `network_policy.block_private_targets` 置 `false`。
+- 详细参数见 `weblinkcrawler crawl --help` / `weblinkcrawler check --help`。
+
 ### 可选：网页预览点选
 
 真实浏览器点选需要 PyQt5 WebEngine：

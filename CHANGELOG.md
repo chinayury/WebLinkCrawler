@@ -2,6 +2,24 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.3.0] -2026-11-17 ·无头 CLI 抓取与体检模式（crawl / check 子命令）
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.2.1 → v0.3.0（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 新增
+- **CLI 无头子命令**（运维巡检 / 自动化场景；来源：四轮对标——linkchecker / lychee / hydra / LibreCrawl 均支持无 GUI 使用，本项目此前抓取与体检只能进 GUI，为最大借鉴缺口，决策链见 `docs/06` §7）：
+  - `weblinkcrawler crawl <URL...>`：同域 BFS 下钻提取链接，`--depth` / `--max-pages` 内存覆盖（不回写配置文件），`--export PATH --fmt txt/csv/json` 导出；
+  - `weblinkcrawler check <URL...>`：并发 HEAD 链接体检（与 GUI 同一分级策略），逐行 `状态\t状态码\tURL` 输出，可选导出；
+  - 实现仅消费 `config` + `crawler` 核心引擎（不导入 tkinter、不持久化数据库）；进度事件走 stderr、结果走 stdout，便于脚本消费；安全策略与 GUI 完全一致（私有地址拦截、robots / Crawl-delay 尊重）。
+- **无头端到端测试**：`tests/test_cli_headless.py`（本地 HTTP fixture，无外网依赖；覆盖 crawl 导出、depth 覆盖生效、check 状态与导出、无子命令 GUI 路径回退；CI tkinter 环境自动跳过 GUI 路径用例）。
+
+### 改进
+- `README` 快速启动新增「命令行模式」小节；`docs/03` 新增 §10（子命令参数表与行为要点，原相关文档节顺延为 §11）；`docs/05` 追加 S-14 / 变更-15；`docs/06` 追加 §7。
+
+### 兼容性说明
+- 无参数启动 GUI、`--version` / `-h` 行为逐字节不变；`crawler.py` 公开接口零改动；新增子命令全部默认值与 GUI 配置同源。
+- 本机验证：`python -m compileall src tests` 全绿；`python -m unittest discover -s tests` **20 passed**（含本地 fixture 端到端实爬）；CLI `crawl` / `check` / `--version` 冒烟通过；CI 三平台 × 双版本全绿（发布前实测）。
+
 ## [v0.2.1] -2026-11-15 ·第三轮维护循环（轻量轮：调研与复扫记录）
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.2.0 → v0.2.1（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
