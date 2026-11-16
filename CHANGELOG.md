@@ -2,6 +2,22 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.3.1] -2026-11-17 ·check 退出码语义（cron/CI 告警口径）
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.3.0 → v0.3.1（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 改进
+- **`weblinkcrawler check` 退出码语义**（lychee / linkchecker 借鉴）：存在 **dead（断链）或 error（无法判定）**级链接时以退出码 **1** 结束（0 = 全部正常；ok / redirect / blocked 视为正常），可直接用于 cron / CI 告警判断；新增 `--strict` 开关将 blocked（401/403/429，常见为鉴权墙/反爬）也计入失败（默认放行以控制误报，与引擎把 999 类反爬码默认视为 ok 的口径一致）。请求异常仍以退出码 1 报告。`crawl` 语义不变（成功抓取即 0）。文档同步：README 命令行模式小节、docs/03 §10。
+- 新增 fixture 用例 `/missing`（404 → dead → 退出码 1），全量测试 **21 项**通过。
+
+### 预研与记录
+- **DNS 重绑定 TOCTOU**（docs/04 §10 残余风险 1）：确认锁定依赖 urllib3 2.8.0 的 `HTTPSConnection` 支持 `server_hostname` 参数（按 IP 建连、SNI/证书校验保留域名的路径可行）；因需连接层改造与对抗性测试，维持待排期结论，预研结论已回写 docs/04。
+- 依赖双口径复扫：锁定清单 pip-audit **0 漏洞**；实装环境经上轮 S-14 恢复后无新漂移（pillow 13.0.0 与锁定一致）。
+
+### 兼容性说明
+- `src/` 仅 `cli.py` 一处行为变更，且 `check` 为上一版（v0.3.0）新增的子命令——不存在历史行为契约变更；GUI、引擎、配置、导出格式零改动。
+- 验证：`python -m compileall src tests` 全绿；`python -m unittest discover -s tests` 21 passed；CLI `--version` / `check` 冒烟通过。
+
 ## [v0.3.0] -2026-11-17 ·无头 CLI 抓取与体检模式（crawl / check 子命令）
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.2.1 → v0.3.0（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。

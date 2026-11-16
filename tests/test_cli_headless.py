@@ -53,6 +53,12 @@ class _FixtureHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_HEAD(self):
+        # /missing 固定 404：供 check 退出码语义用例（error → 退出码 1）
+        if self.path == "/missing":
+            self.send_response(404)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         self.send_response(200)
         self.send_header("Content-Length", "0")
         self.end_headers()
@@ -127,6 +133,13 @@ class CliHeadlessTest(unittest.TestCase):
         with mock.patch("weblinkcrawler.cli._make_engine", return_value=pair):
             exit_code = main(["check", self.base_url])
         self.assertEqual(exit_code, 0)
+
+    def test_check_exit_code_signals_error(self):
+        """退出码语义：error 级链接 → 1（cron 告警判断口径）。"""
+        pair = self._make_engine_pair()
+        with mock.patch("weblinkcrawler.cli._make_engine", return_value=pair):
+            exit_code = main(["check", self.base_url + "missing"])
+        self.assertEqual(exit_code, 1)
 
     def test_check_export_json(self):
         out = os.path.join(self._tmp, "checks.json")

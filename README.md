@@ -74,6 +74,9 @@ weblinkcrawler check https://example.com https://example.com/about --export chec
 - 与 GUI 共用同一核心引擎与 `enhanced_config.json` 配置；配置生成于当前工作目录。
 - 默认按安全策略拦截私有/回环地址（含 127.0.0.1）；需抓内网站点时在
   `enhanced_config.json` 将 `network_policy.block_private_targets` 置 `false`。
+- **退出码**：`check` 存在 dead（断链）/ error 级链接时以非零退出（0 = 全部正常），
+  加 `--strict` 则 blocked（401/403/429）也计入失败；可直接用于 cron / CI 告警判断。
+  `crawl` 成功抓取即 0。
 - 详细参数见 `weblinkcrawler crawl --help` / `weblinkcrawler check --help`。
 
 ### 可选：网页预览点选

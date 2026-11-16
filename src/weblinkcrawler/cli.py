@@ -56,6 +56,8 @@ def _build_parser():
                        help="导出路径（自动创建父目录）")
     check.add_argument("--fmt", choices=_EXPORT_FORMATS, default="json",
                        help="导出格式（默认 json，仅 --export 生效）")
+    check.add_argument("--strict", action="store_true",
+                       help="blocked（401/403/429）也计入失败判定（默认仅 dead/error 算失败）")
     return parser
 
 
@@ -156,7 +158,15 @@ def _run_check(args):
                   "crawl_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
         )
         print(f"exported: {path}")
-    return 0
+    # 退出码语义（借鉴 lychee / linkchecker）：存在失败级链接 → 1，供 cron 告警判断。
+    # 引擎状态词表：ok / redirect / blocked / dead / error。
+    # dead（断链）+ error（无法判定）必判失败；blocked（401/403/429，常见为鉴权墙/反爬）
+    # 默认放行以控制误报，与引擎把 999 类反爬码默认视为 ok 的口径一致；--strict 收紧。
+    fail_states = {"dead", "error"}
+    if getattr(args, "strict", False):
+        fail_states.add("blocked")
+    failed = sum(counters.get(s, 0) for s in fail_states)
+    return 1 if failed else 0
 
 
 def main(argv=None):
