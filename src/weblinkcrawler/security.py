@@ -71,6 +71,41 @@ def resolved_is_private(host):
     return any(is_private_host(address) for address in addresses)
 
 
+def resolve_pinned_ip(host, *, allow_private=True):
+    """解析主机并返回用于建连的 IP（DNS 重绑定 TOCTOU 防护，F-03 余项）。
+
+    「校验时解析一次、连接时再解析一次」之间存在重绑定窗口；本函数把
+    「解析 + 私有地址判定」与建连收敛到一次：连接层拿本函数返回的 IP
+    直连，SNI/证书校验仍用原域名（urllib3 2.x ``server_hostname``）。
+
+    返回值语义：
+    - IP 字面量主机（含 127.0.0.1 这类回环字面量与代理场景）→ ``None``，
+      无需解析，按原样建连即为「已钉定」；
+    - 其他主机 → 首个公网 IP（IPv4 优先）；
+    - 全部解析结果为私有/回环且 allow_private=False（默认拦截策略）→
+      抛 :class:`UnsafeUrlError`（fail-closed）；
+    - allow_private=True（内网站点开关）→ 私有地址正常返回；
+    - 解析失败 → 抛 :class:`UnsafeUrlError`（与 F-03 的 fail-closed 口径一致）。
+    """
+    host = (host or "").strip()
+    if is_ip_literal(host):
+        return None
+    try:
+        infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+        # 去重保序：getaddrinfo 可能对同一地址返回多行（不同 socktype）
+        addresses = list(dict.fromkeys(info[4][0] for info in infos))
+    except (socket.gaierror, OSError) as exc:
+        raise UnsafeUrlError(f"DNS 解析失败: {host}") from exc
+    public = [a for a in addresses if not is_private_host(a)]
+    if public:
+        v4 = [a for a in public if ":" not in a]
+        return (v4 or public)[0]
+    if allow_private and addresses:
+        v4 = [a for a in addresses if ":" not in a]
+        return (v4 or addresses)[0]
+    raise UnsafeUrlError(f"私有或回环地址已按策略拦截: {host}")
+
+
 def validate_target(url, *, follow_redirect=False, allow_private=True,
     allowed_netloc=None):
     """校验 URL结构、协议、凭据与重定向归属。"""

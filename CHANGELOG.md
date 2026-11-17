@@ -2,6 +2,24 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.4.0] -2026-11-18 ·DNS 重绑定防护（连接层 IP 钉定）
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.3.2 → v0.4.0（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 新增（安全加固）
+- **DNS 重绑定 TOCTOU 防护**（docs/04 §10 残余风险 1 处置完毕，F-03 余项收官）：连接层按「解析 + 私有地址判定一次完成」的 IP 建连——`security.resolve_pinned_ip`（IP 字面量/代理场景走原路；解析失败或私有地址未放行 → fail-closed）+ 钉定连接类（socket 直连校验过的 IP，`server_hostname` 保留原域名，SNI/证书校验语义与直连域名完全一致）；GUI 与 CLI（crawl/check）全部请求生效，无需任何配置。
+- **fail-closed 口径不变**：解析失败、私有/回环地址（未显式放行内网）一律拒绝；拒绝在连接层发生时以连接错误语义上报（`NameResolutionError` 转译），链接分级为 error。
+- **回归测试**：新增 `tests/test_pinning.py`（resolver 口径 4 组、钉定适配器挂载、以 `localhost` 端到端抓取 fixture 验证 socket 钉定路径、NXDOMAIN fail-closed → 退出码 1），全量 **40 项**通过。
+
+### 边界说明（如实记录）
+- 经代理（含系统环境代理）访问时，DNS 由代理侧解析，钉定不适用——重绑定风险转移给代理的解析器，与所有经代理的工具一致；引擎默认不主动配置代理（用户显式开启 `anti_anti_crawl.proxy` 时适用此边界）。
+- 真站冒烟：直连模式下 resolver 返回 `www.itmsky.com → 8.146.211.19`，socket 连 IP、证书校验域名 → 200；过程与实施缺陷修正记录见 `docs/05` 变更-18、设计记录见 `docs/06` §10。
+
+### 兼容性说明
+- 对外契约不变：`crawler.py` 公开接口签名零变更；新增连接层行为对正常流量透明（Host/URL/SNI 语义不变）；内网站点开关（`network_policy.block_private_targets=false`）行为不变。
+- 依赖零新增：钉定实现基于锁定的 urllib3 2.8.0 既有能力。
+- 验证：`python -m compileall src tests` 全绿；`python -m unittest discover -s tests` 40 passed；CLI `--version` / `check` 冒烟通过；CI 三平台全绿（发布前实测）。
+
 ## [v0.3.2] -2026-11-18 ·CI 集成依赖漏洞扫描
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.3.1 → v0.3.2（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。

@@ -35,10 +35,20 @@ from urllib.parse import urljoin, urlsplit
 import requests
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
+from urllib3.connection import HTTPConnection, HTTPSConnection
+from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
+from urllib3.exceptions import NameResolutionError
 
 from .config import canonical_key, normalize_url
 from .logutil import get_logger
-from .security import UnsafeUrlError, is_ip_literal, is_private_host, resolved_is_private, validate_target
+from .security import (
+    UnsafeUrlError,
+    is_ip_literal,
+    is_private_host,
+    resolve_pinned_ip,
+    resolved_is_private,
+    validate_target,
+)
 
 log = get_logger()
 
@@ -75,7 +85,124 @@ _DEFAULT_HEAD_FALLBACK_CODES = (405, 501)
 _DEFAULT_PARSEABLE_TYPES = ("text/html", "application/xhtml+xml", "text/plain")
 
 
-class _SSLAdapter(HTTPAdapter):
+class _PinnedHTTPSConnection(HTTPSConnection):
+    """连接目标改用 pin_resolver 返回的 IP；SNI/证书校验保留原域名。
+
+    DNS 重绑定 TOCTOU 防护的连接层落地（F-03 余项，docs/04 §10）：socket
+    直连「校验过的 IP」，``server_hostname`` 保留域名，握手与证书校验语义
+    与直连域名完全一致。IP 字面量/解析不可用时回退默认行为。
+    """
+
+    def __init__(self, *args, pin_resolver=None, **kwargs):
+        self._pin_resolver = pin_resolver
+        super().__init__(*args, **kwargs)
+
+    def _new_conn(self):
+        if self._pin_resolver is None:
+            return super()._new_conn()
+        try:
+            ip = self._pin_resolver(self.host)
+        except UnsafeUrlError as exc:
+            # 转译为 urllib3 连接类异常：引擎/CLI 侧按 ConnectionError 语义处理
+            raise NameResolutionError(self.host, self, exc) from exc
+        if not ip or ip == self.host:
+            return super()._new_conn()
+        orig_host = self.host
+        self.host = ip
+        try:
+            # super()._new_conn() 以 (ip, port) 建连；随后的 TLS 封装使用
+            # __init__ 里显式传入的 server_hostname（原域名），语义不变
+            return super()._new_conn()
+        finally:
+            self.host = orig_host
+
+
+class _PinnedHTTPConnection(HTTPConnection):
+    """HTTP 明文连接的同款钉定（无 TLS 语义，仅替换 socket 目标）。"""
+
+    def __init__(self, *args, pin_resolver=None, **kwargs):
+        self._pin_resolver = pin_resolver
+        super().__init__(*args, **kwargs)
+
+    def _new_conn(self):
+        if self._pin_resolver is None:
+            return super()._new_conn()
+        try:
+            ip = self._pin_resolver(self.host)
+        except UnsafeUrlError as exc:
+            raise NameResolutionError(self.host, self, exc) from exc
+        if not ip or ip == self.host:
+            return super()._new_conn()
+        orig_host = self.host
+        self.host = ip
+        try:
+            return super()._new_conn()
+        finally:
+            self.host = orig_host
+
+
+class _PinnedHTTPSConnectionPool(HTTPSConnectionPool):
+    """HTTPS 池：连接类替换为钉定版（池键/Host/SNI 均保留域名语义）。"""
+
+    ConnectionCls = _PinnedHTTPSConnection
+
+
+class _PinnedHTTPConnectionPool(HTTPConnectionPool):
+    """HTTP 池：连接类替换为钉定版。"""
+
+    ConnectionCls = _PinnedHTTPConnection
+
+
+class _PinnedAdapter(HTTPAdapter):
+    """按「解析后 IP」建连的适配器（DNS 重绑定 TOCTOU 防护）。
+
+    注意：urllib3 2.8 的 PoolKey 会把 connection_pool_kw 的所有字段纳入
+    池键构造（``key_<name>``），自定义 kwarg 直接破坏 PoolKey——因此
+    pin_resolver 不能走池构造参数，改为包裹池管理器的
+    ``connection_from_host``，在池首次创建后把 resolver 注入
+    ``pool.conn_kw``（连接类在 ``_new_conn`` 时读取）。Host 头与 URL
+    保留域名，socket 目标为 resolver 返回的 IP。代理池同样覆盖（教训同
+    _SSLAdapter：只处理 init_poolmanager 会让代理用户静默失效）。
+    """
+
+    def __init__(self, *args, pin_resolver=None, **kwargs):
+        self._pin_resolver = pin_resolver
+        super().__init__(*args, **kwargs)
+
+    def _pooled_schemes(self):
+        return {
+            "http": _PinnedHTTPConnectionPool,
+            "https": _PinnedHTTPSConnectionPool,
+        }
+
+    def _inject_pinned_pools(self, manager):
+        """替换池类并包裹池获取入口：池创建后注入 resolver 到 conn_kw。"""
+        manager.pool_classes_by_scheme = self._pooled_schemes()
+        resolver = self._pin_resolver
+        if resolver is None:
+            return
+        original = manager.connection_from_host
+
+        def connection_from_host(host, port=None, scheme="http", pool_kwargs=None):
+            pool = original(host, port=port, scheme=scheme, pool_kwargs=pool_kwargs)
+            if not getattr(pool, "_pin_resolver_injected", False):
+                pool.conn_kw["pin_resolver"] = resolver
+                pool._pin_resolver_injected = True
+            return pool
+
+        manager.connection_from_host = connection_from_host
+
+    def init_poolmanager(self, *args, **kwargs):
+        super().init_poolmanager(*args, **kwargs)
+        self._inject_pinned_pools(self.poolmanager)
+
+    def proxy_manager_for(self, proxy, **kwargs):
+        manager = super().proxy_manager_for(proxy, **kwargs)
+        self._inject_pinned_pools(manager)
+        return manager
+
+
+class _SSLAdapter(_PinnedAdapter):
     """遗留服务器 SSL 兼容适配器（由 network_policy.ssl_compat_legacy_servers 开启）。
 
     部分老站仍在使用 1024 位 RSA 证书或弱 DH 参数，OpenSSL 3 的默认安全级别
@@ -188,10 +315,34 @@ class CrawlerEngine:
         session = getattr(self._tls, "session", None)
         if session is None:
             session = requests.Session()
+            resolver = self._pinned_resolver()
             if self._ssl_compat_enabled():
-                session.mount("https://", _SSLAdapter())
+                session.mount("https://", _SSLAdapter(pin_resolver=resolver))
+                session.mount("http://", _PinnedAdapter(pin_resolver=resolver))
+            else:
+                session.mount("https://", _PinnedAdapter(pin_resolver=resolver))
+                session.mount("http://", _PinnedAdapter(pin_resolver=resolver))
             self._tls.session = session
         return session
+
+    def _pinned_resolver(self):
+        """构造建连解析器：解析 + 私有地址判定一次完成（重绑定防护）。
+
+        allow_private 取 network_policy.block_private_targets 的反义：
+        用户显式放行内网站点时，私有地址正常返回用于建连。
+        """
+        def resolver(host):
+            allow_private = not self._block_private_targets()
+            return resolve_pinned_ip(host, allow_private=allow_private)
+        return resolver
+
+    def _block_private_targets(self):
+        try:
+            return self.config.get_bool(
+                "network_policy", "block_private_targets", default=True,
+            )
+        except Exception:
+            return True
 
     def _ssl_compat_enabled(self):
         """是否启用遗留服务器 SSL 兼容（默认关闭，不改变现有行为）。"""
