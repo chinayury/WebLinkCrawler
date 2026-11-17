@@ -2,6 +2,22 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.3.2] -2026-11-18 ·CI 集成依赖漏洞扫描
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.3.1 → v0.3.2（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 改进
+- **CI 新增「Security - dependency audit」步骤**（Linux 腿）：每次推送自动执行 `pip-audit -r requirements.txt --no-deps`，锁定清单有已知漏洞即红灯；依赖审计从维护轮手工执行升级为推送自动执行（借鉴 lychee / hydra 的 CI 安全扫描实践，决策记录见 `docs/06` §9）。
+- 依赖双口径复扫：锁定清单 **0 漏洞**；实装环境全量审计归零（pip 26.1.2 → 26.3，PYSEC-2026-3721 修复）。
+
+### 预研与记录
+- DNS 重绑定 TOCTOU（docs/04 §10 残余风险）维持待排期：urllib3 2.8 `server_hostname` 可行路径已探明，实施需连接层改造 + 对抗性测试（明示取舍，非遗漏）。
+- `docs/05` 追加变更-17；`docs/06` 追加 §9。
+
+### 兼容性说明
+- `src/` **零改动**：对外契约、CLI/GUI 行为、构建元数据除版本号外不变；本轮仅 CI 配置与文档。
+- 验证：`python -m compileall src tests` 全绿；`python -m unittest discover -s tests` 21 passed；CLI `--version` / `check` 冒烟通过；CI 三平台全绿（发布前实测）。
+
 ## [v0.3.1] -2026-11-17 ·check 退出码语义（cron/CI 告警口径）
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.3.0 → v0.3.1（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
