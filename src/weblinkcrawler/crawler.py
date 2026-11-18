@@ -261,6 +261,48 @@ def _csv_cell(value):
     return text
 
 
+def _parse_robots_rules(text):
+    """解析 robots.txt 文本 → ([(kind, pattern), ...], crawl_delay)。
+
+    从 ``_robots`` 抓取循环中提取的纯解析函数（原逻辑逐行等价，便于单测）：
+    - 仅采纳 ``User-agent: *`` 分组；进入其他分组即停止收集，回到 ``*`` 行再进入；
+    - 行内注释剥离、空行/无冒号行跳过、空 ``Disallow:`` 值跳过（语义为全放行）；
+    - ``Crawl-delay`` 浮点容错（非法值归 0）；
+    - 存在 Allow 规则时统一为 allow 在前、disallow 在后的 (类型, 规则) 二元组，
+      交由 ``robots_allows`` 做 RFC 9309 最长匹配优先判定。
+    """
+    allow, disallow = [], []
+    agent_matches = False
+    delay = 0.0
+    for line in text.splitlines():
+        line = line.split("#", 1)[0].strip()
+        if not line or ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        key = key.strip().lower()
+        value = value.strip()
+        if key == "user-agent":
+            # 只采纳 User-agent: * 分组；进入其他分组即停止收集
+            agent_matches = value == "*"
+        elif not agent_matches:
+            continue
+        elif key == "disallow" and value:
+            disallow.append(value)
+        elif key == "allow" and value:
+            allow.append(value)
+        elif key == "crawl-delay":
+            try:
+                delay = max(0.0, float(value))
+            except (TypeError, ValueError):
+                delay = 0.0
+    if allow:
+        # 统一以 (类型, 规则) 二元组返回，避免调用方还要分辨两种格式
+        rules = [("allow", p) for p in allow] + [("disallow", p) for p in disallow]
+    else:
+        rules = [("disallow", p) for p in disallow]
+    return rules, delay
+
+
 def same_domain(a, b):
     """判断两个 URL是否属于同一主机（host:port相同）。解析失败或缺少主机名返回 False。"""
     try:
@@ -589,34 +631,7 @@ class CrawlerEngine:
                             if len(body) >= _ROBOTS_MAX_BYTES:
                                 break
                     text = bytes(body).decode("utf-8", errors="replace")
-                    allow, agent_matches = [], False
-                    for line in text.splitlines():
-                        line = line.split("#", 1)[0].strip()
-                        if not line or ":" not in line:
-                            continue
-                        key, value = line.split(":", 1)
-                        key = key.strip().lower()
-                        value = value.strip()
-                        if key == "user-agent":
-                            # 只采纳 User-agent: * 分组；进入其他分组即停止收集
-                            agent_matches = value == "*"
-                        elif not agent_matches:
-                            continue
-                        elif key == "disallow" and value:
-                            disallow.append(value)
-                        elif key == "allow" and value:
-                            allow.append(value)
-                        elif key == "crawl-delay":
-                            try:
-                                delay = max(0.0, float(value))
-                            except (TypeError, ValueError):
-                                delay = 0.0
-                    if allow:
-                        # 统一以 (类型, 规则) 二元组返回，避免调用方还要分辨两种格式
-                        disallow = ([("allow", p) for p in allow]
-                                    + [("disallow", p) for p in disallow])
-                    else:
-                        disallow = [("disallow", p) for p in disallow]
+                    disallow, delay = _parse_robots_rules(text)
             except Exception as exc:
                 # robots 读取失败按放行处理（可用性优先），但必须留痕（F-09）
                 log.warning("robots.txt 读取失败，按放行处理(%s): %s", root, type(exc).__name__)

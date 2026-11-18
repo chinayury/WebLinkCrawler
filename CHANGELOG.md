@@ -2,6 +2,19 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.4.1] -2026-11-19 ·robots 解析/匹配测试面补齐
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.4.0 → v0.4.1（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 改进
+- robots 解析循环从 `_robots()`（网络抓取方法）中提取为模块级纯函数 `_parse_robots_rules(text)`——**逐行逻辑等价，零行为变更**（分组选择/注释剥离/空 Disallow 跳过/Crawl-delay 容错/Allow-Disallow 二元组归一化）。
+- 新增 `tests/test_robots.py`（11 项，无网络）：解析边界 5 组、`_robots_match_length` 通配与 `$` 锚定 3 组、预置缓存后 `robots_allows` RFC 9309 最长匹配优先集成 3 组——robots 这条 politeness/安全相关路径首次拥有独立回归保护。
+- 依赖双口径复扫：锁定清单与实装环境均 **0 漏洞**（连续两轮归零）。
+
+### 兼容性说明
+- 重构为纯函数提取，`_robots()` 抓取流程与解析结果格式完全不变；对外契约零变更。
+- 验证：`python -m compileall src tests` 全绿；`python -m unittest discover -s tests` **51 passed**；CLI `--version` / `check` 冒烟通过；CI 三平台全绿（发布前实测）。
+
 ## [v0.4.0] -2026-11-18 ·DNS 重绑定防护（连接层 IP 钉定）
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.3.2 → v0.4.0（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
