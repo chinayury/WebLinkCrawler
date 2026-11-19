@@ -9,7 +9,7 @@
 """
 
 # 版本号单一事实源之一（与 pyproject.toml version 严格对齐，随发布递增）
-APP_VERSION = "0.4.1"
+APP_VERSION = "0.4.2"
 APP_NAME = "网页链接抓取工具"
 APP_NAME_EN = "WebLinkCrawler"
 APP_VENDOR = "智维ITMSKY"

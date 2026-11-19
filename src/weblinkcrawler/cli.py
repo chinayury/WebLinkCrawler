@@ -169,6 +169,19 @@ def _run_check(args):
     return 1 if failed else 0
 
 
+def _tkinter_available():
+    """tkinter 是否真实可用（模块存在且 C 扩展 libtk 可加载）。
+
+    slim 镜像等环境常见「模块在、libtk8.6.so 不在」的半损坏状态，
+    必须实际 import 探测，find_spec 判断不出来。
+    """
+    try:
+        import tkinter  # noqa: F401
+    except Exception:
+        return False
+    return True
+
+
 def main(argv=None):
     """命令行入口；无参数时启动 GUI（与历史行为一致）。"""
     _redirect_quiet_stderr()
@@ -186,19 +199,16 @@ def main(argv=None):
         except Exception as exc:
             print(f"check failed: {exc}", file=sys.stderr)
             return 1
-    # 无子命令：GUI 路径（历史行为；tkinter 缺失给可操作提示）
-    try:
-        from .app import main as app_main
-    except ImportError as exc:
-        if "tkinter" in str(exc) or "_tkinter" in str(exc):
-            print(
-                "未找到 tkinter：当前环境缺少 GUI 运行库，无法启动图形界面。\n"
-                "无 GUI 抓取/体检可用子命令：weblinkcrawler crawl|check（见 --help）。\n"
-                "Windows / macOS 官方 Python 自带 tkinter；Debian/Ubuntu 可执行\n"
-                "    sudo apt-get install python3-tk\n"
-                "后重试。版本查询不受影响：weblinkcrawler --version",
-                file=sys.stderr,
-            )
-            return 1
-        raise
+    # 无子命令：GUI 路径（历史行为；tkinter 缺失/半损坏给可操作提示）
+    if not _tkinter_available():
+        print(
+            "未找到可用的 tkinter：当前环境缺少 GUI 运行库，无法启动图形界面。\n"
+            "无 GUI 抓取/体检可用子命令：weblinkcrawler crawl|check（见 --help）。\n"
+            "Windows / macOS 官方 Python 自带 tkinter；Debian/Ubuntu 可执行\n"
+            "    sudo apt-get install python3-tk\n"
+            "后重试。版本查询不受影响：weblinkcrawler --version",
+            file=sys.stderr,
+        )
+        return 1
+    from .app import main as app_main
     return app_main()

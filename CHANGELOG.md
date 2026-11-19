@@ -2,6 +2,17 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.4.2] -2026-11-19 ·CLI GUI 回退探测加固
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.4.1 → v0.4.2（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 修复
+- **CLI 无子命令时的 tkinter 降级探测加固**：`python:3.12-slim` 等环境存在「tkinter 模块在、C 扩展 libtk8.6.so 缺失」的半损坏状态——旧实现只按 ImportError 文本匹配（`tkinter`/`_tkinter` 子串），该场景漏判导致裸 `ImportError: libtk8.6.so` 直接抛出。现改为启动 GUI 前显式 import 探测（`_tkinter_available()`，find_spec 判断不出此类损坏），命中即输出可操作提示并退出码 1。
+- 该缺陷由测试服务器（python:3.12-slim 容器）全量测试捕获：51 项测试中 3 项 GUI 回退用例失败，修复后容器内全量复验 **51 项通过**。文档记录：docs/05 变更-20。
+
+### 兼容性说明
+- 仅 GUI 回退路径行为变化（此前为裸异常，现为友好提示 + 退出码 1）；无子命令启动 GUI、`--version` / `crawl` / `check` 语义不变。
+
 ## [v0.4.1] -2026-11-19 ·robots 解析/匹配测试面补齐
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.4.0 → v0.4.1（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
