@@ -2,6 +2,18 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.4.3] -2026-11-20 ·例行复扫与对标信号确认
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.4.2 → v0.4.3（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 改进
+- 依赖双口径复扫：锁定清单与实装环境均 **0 漏洞**（连续三轮归零）；对标项目无新增可借鉴信号（lychee 稳定版未变、linkchecker 无更新、LibreCrawl 结论不变），决策记录见 `docs/06` §12。
+- 测试服务器容器内验证门槛常态化运行：本轮发布前容器内全量测试与 CLI 冒烟复验全绿。
+
+### 兼容性说明
+- `src/` **零改动**（除版本号）；对外契约、行为、构建元数据不变。
+- 验证：本机 `python -m compileall src tests` 全绿、`python -m unittest discover -s tests` 51 passed、CLI 冒烟通过；测试服务器容器内同口径全绿；CI 三平台全绿（发布前实测）。
+
 ## [v0.4.2] -2026-11-19 ·CLI GUI 回退探测加固
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.4.1 → v0.4.2（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
