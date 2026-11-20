@@ -2,6 +2,18 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.4.4] -2026-11-21 ·持久层回归面补齐
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.4.3 → v0.4.4（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 改进
+- `database.py`（SQLite WAL 持久层）此前零测试覆盖，新增 `tests/test_database.py`（4 项，临时文件库、无网络）：任务生命周期（pending/crawling/stopped 可续、done 不可续）、`add_links_bulk` 批量写入与 `links_for_task` 写入顺序、`visited_for_task` 去重、`add_checks_bulk` 落库 + 重开连接读回（WAL 持久性）、空批量 no-op。全量 **55 项**通过。
+- 依赖双口径复扫：锁定清单与实装环境均 **0 漏洞**（连续四轮归零）。
+
+### 兼容性说明
+- 零实现变更（仅新增测试）；对外契约、行为、构建元数据除版本号外不变。
+- 验证：本机 `python -m compileall src tests` 全绿、`python -m unittest discover -s tests` 55 passed、CLI 冒烟通过；测试服务器容器内同口径全绿；CI 三平台全绿（发布前实测）。
+
 ## [v0.4.3] -2026-11-20 ·例行复扫与对标信号确认
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.4.2 → v0.4.3（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
