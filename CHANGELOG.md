@@ -2,6 +2,18 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.4.5] -2026-11-22 ·配置层回归面补齐
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.4.4 → v0.4.5（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 改进
+- `config.py`（ConfigManager 配置层）此前零直接测试覆盖，新增 `tests/test_config.py`（9 项，临时目录、无网络）：增强配置加载迁移（部分文件 → 深合并补默认值并回写落盘）、`get_int` 非法值回退与 lo/hi 钳制、`get_bool`/`get_list` 强转与清洗、属性映射（max_depth 钳制/禁用归零/max_pages/concurrency/css_selector 剥空白）、`request_params` 六元组形状（动态 UA、代理类型映射与非法类型回退 http、Cookie 解析清洗、禁用反反爬时全默认）、文件类型映射读写回环。全量 **64 项**通过（两遍连跑）。
+- 依赖双口径复扫：锁定清单与实装环境均 **0 漏洞**（连续五轮归零）。
+
+### 兼容性说明
+- 零实现变更（仅新增测试）；对外契约、行为、构建元数据除版本号外不变。
+- 验证：本机 `python -m compileall src tests` 全绿、`python -m unittest discover -s tests` 64 passed（两遍连跑）、CLI 冒烟通过；测试服务器容器内同口径全绿；CI 三平台全绿（发布前实测）。
+
 ## [v0.4.4] -2026-11-21 ·持久层回归面补齐
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.4.3 → v0.4.4（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
