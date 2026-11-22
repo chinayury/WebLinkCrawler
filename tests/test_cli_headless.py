@@ -141,6 +141,17 @@ class CliHeadlessTest(unittest.TestCase):
             exit_code = main(["check", self.base_url + "missing"])
         self.assertEqual(exit_code, 1)
 
+    def test_crawl_check_combined_reports_failures(self):
+        """crawl --check 组合模式：抓取后对发现链接体检，失败级存在 → 退出码 1。
+
+        fixture 的 /alpha /beta 同域可访问（ok），但页面含 external.example
+        （RFC 2606 保留 TLD，NXDOMAIN）→ error → 退出码 1。
+        """
+        pair = self._make_engine_pair()
+        with mock.patch("weblinkcrawler.cli._make_engine", return_value=pair):
+            exit_code = main(["crawl", self.base_url, "--depth", "1", "--check"])
+        self.assertEqual(exit_code, 1)
+
     def test_check_export_json(self):
         out = os.path.join(self._tmp, "checks.json")
         pair = self._make_engine_pair()

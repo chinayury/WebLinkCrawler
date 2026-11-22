@@ -2,6 +2,22 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.5.0] -2026-11-23 ·crawl --check 抓取即体检
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.4.5 → v0.5.0（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 新增
+- **`weblinkcrawler crawl --check`**：抓取完成后对发现的链接做存活体检，单命令完成「抓取 + 体检」（对齐 lychee / linkchecker 的核心体验，面向巡检场景）；`--strict`（体检阶段 blocked（401/403/429）也计入失败判定）；退出码沿用 check 告警口径（dead/error → 1），可直接用于 cron / CI。
+- 配套导出：`crawl --check --export` 同时产出抓取清册与体检结果（体检 JSON 含 `meta.source` 标注 "crawl --check"）。
+
+### 改进
+- 体检上报逻辑（输出/导出/退出码）合并为共用函数 `_check_and_report`（`check` 子命令与 `crawl --check` 单一来源，消除复制粘贴）；`_event_handler` 去除未使用参数。
+- 新增端到端用例（fixture 含 RFC 2606 保留 TLD 外链 → NXDOMAIN → error → 退出码 1），全量 **67 项**通过。
+
+### 兼容性说明
+- 无参数启动 GUI、`--version` / `-h` 行为不变；`crawl` 不带 `--check` 时行为与 v0.4.5 逐字节一致（新增参数默认关闭）；`check` 子命令语义不变（仅内部重构为共用函数）。
+- 验证：本机 `python -m compileall src tests` 全绿、`python -m unittest discover -s tests` 67 passed、CLI 冒烟通过；测试服务器容器内同口径全绿；CI 三平台全绿（发布前实测）。
+
 ## [v0.4.5] -2026-11-22 ·配置层回归面补齐
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.4.4 → v0.4.5（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。

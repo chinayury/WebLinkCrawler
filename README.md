@@ -67,6 +67,9 @@ weblinkcrawler
 # 同域深度抓取提取链接（depth 为最大下钻深度）
 weblinkcrawler crawl https://example.com --depth 2 --export links.json
 
+# 抓取即体检：抓取完成后对发现的链接做存活体检
+weblinkcrawler crawl https://example.com --depth 2 --check
+
 # 链接存活体检
 weblinkcrawler check https://example.com https://example.com/about --export checks.json
 ```

@@ -46,6 +46,10 @@ def _build_parser():
                        help="导出路径（自动创建父目录）")
     crawl.add_argument("--fmt", choices=_EXPORT_FORMATS, default="json",
                        help="导出格式（默认 json，仅 --export 生效）")
+    crawl.add_argument("--check", action="store_true",
+                       help="抓取完成后对发现的链接做存活体检（退出码沿用 check 语义）")
+    crawl.add_argument("--strict", action="store_true",
+                       help="体检阶段 blocked（401/403/429）也计入失败判定（默认仅 dead/error）")
 
     check = sub.add_parser(
         "check",
@@ -83,7 +87,7 @@ def _make_engine():
     return CrawlerEngine(config, db=None), config
 
 
-def _event_handler(args):
+def _event_handler():
     def on_event(event):
         try:
             kind = event[0] if isinstance(event, tuple) else None
@@ -118,7 +122,7 @@ def _run_crawl(args):
     setup_logging()
     engine, config = _make_engine()
     _apply_overrides(config, args)
-    records = engine.crawl(list(dict.fromkeys(args.urls)), on_event=_event_handler(args))
+    records = engine.crawl(list(dict.fromkeys(args.urls)), on_event=_event_handler())
     records = list(records or [])
     print(f"crawl done: {len(records)} links from {len(args.urls)} start URL(s)")
     if args.export:
@@ -128,15 +132,29 @@ def _run_crawl(args):
                   "crawl_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
         )
         print(f"exported: {path}")
-    return 0
+    if not args.check:
+        return 0
+    # 抓取即体检（lychee / linkchecker 的核心体验）：对发现的链接做存活体检，
+    # 退出码沿用 check 语义（dead/error → 1）
+    links = [r.get("link") for r in records if isinstance(r, dict) and r.get("link")]
+    if not links:
+        print("check skipped: no discovered links")
+        return 0
+    return _check_and_report(
+        engine, links,
+        export=args.export, fmt=args.fmt,
+        source="; ".join(args.urls) + " (crawl --check)",
+        strict=args.strict,
+    )
 
 
-def _run_check(args):
-    from .logutil import setup_logging
+def _check_and_report(engine, links, *, export=None, fmt="json", source, strict=False):
+    """体检链接并上报（check 子命令与 crawl --check 共用，禁止复制粘贴）。
 
-    setup_logging()
-    engine, _ = _make_engine()
-    results = engine.check_links(list(dict.fromkeys(args.urls)), on_event=_event_handler(args))
+    返回退出码：存在失败级链接（dead/error；--strict 时含 blocked）→ 1，
+    其余 → 0（lychee / linkchecker 的告警口径）。
+    """
+    results = engine.check_links(list(dict.fromkeys(links)), on_event=_event_handler())
     results = dict(results or {})
     counters = {}
     for link in results:
@@ -147,26 +165,38 @@ def _run_check(args):
         print(f"{state}\t{code}\t{link}")
     summary = ", ".join(f"{k}={v}" for k, v in sorted(counters.items())) or "none"
     print(f"check done: {len(results)} link(s) [{summary}]")
-    if args.export:
+    if export:
         records = [
             {"link": link, "state": state, "code": code}
             for link, (state, code) in results.items()
         ]
         path = engine.export(
-            records, args.export, fmt=args.fmt,
-            meta={"source": "; ".join(args.urls),
+            records, export, fmt=fmt,
+            meta={"source": source,
                   "crawl_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
         )
         print(f"exported: {path}")
-    # 退出码语义（借鉴 lychee / linkchecker）：存在失败级链接 → 1，供 cron 告警判断。
     # 引擎状态词表：ok / redirect / blocked / dead / error。
-    # dead（断链）+ error（无法判定）必判失败；blocked（401/403/429，常见为鉴权墙/反爬）
-    # 默认放行以控制误报，与引擎把 999 类反爬码默认视为 ok 的口径一致；--strict 收紧。
+    # dead（断链）+ error（无法判定）必判失败；blocked 默认放行以控制误报，
+    # 与引擎把 999 类反爬码默认视为 ok 的口径一致；--strict 收紧。
     fail_states = {"dead", "error"}
-    if getattr(args, "strict", False):
+    if strict:
         fail_states.add("blocked")
     failed = sum(counters.get(s, 0) for s in fail_states)
     return 1 if failed else 0
+
+
+def _run_check(args):
+    from .logutil import setup_logging
+
+    setup_logging()
+    engine, _ = _make_engine()
+    return _check_and_report(
+        engine, args.urls,
+        export=args.export, fmt=args.fmt,
+        source="; ".join(args.urls),
+        strict=args.strict,
+    )
 
 
 def _tkinter_available():
