@@ -2,6 +2,17 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.6.1] -2026-11-24 ·测试基建提速
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.6.0 → v0.6.1（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 改进
+- 测试基建：端到端用例的引擎装配将 `anti_anti_crawl.request_strategy` 的 `interval` / `retries` / `retry_after_cap` 置零（仅影响计时与失败重试次数，不改变抓取/体检结果语义）；全量 70 项 **216s → 27s**。明确不采用「分组/标记跳过网络用例」方案——保留默认全量门禁覆盖面，快跑与门禁同一套用例。
+
+### 兼容性说明
+- `src/` **零改动**（仅 tests/ 装配逻辑）；产品行为、对外契约、构建元数据除版本号外不变。
+- 验证：本机 `python -m compileall src tests` 全绿、`python -m unittest discover -s tests` 70 passed（27s）、CLI 冒烟通过；测试服务器容器内同口径全绿；CI 三平台全绿（发布前实测）。
+
 ## [v0.6.0] -2026-11-24 ·crawl --check-same-domain 外链过滤
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.5.0 → v0.6.0（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。

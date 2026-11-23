@@ -104,6 +104,13 @@ class CliHeadlessTest(unittest.TestCase):
         # 内存覆盖：测试抓取目标就是 127.0.0.1（该开关的正当内网用途）
         policy["block_private_targets"] = False
         policy["block_private_redirects"] = False
+        # 测试基建提速：请求节流间隔与退避重试归零（只影响计时/重试次数，
+        # 不改变抓取/体检结果语义）；默认策略（interval=2、retries=3）下的
+        # 端到端用例单轮曾耗时 200s+
+        strategy = config.enhanced_config.setdefault("anti_anti_crawl", {}) \
+            .setdefault("request_strategy", {})
+        strategy.update({"enabled": True, "interval": 0, "retries": 1,
+                         "retry_after_cap": 0})
         return CrawlerEngine(config, db=None), config
 
     def test_crawl_exports_discovered_links(self):
