@@ -50,6 +50,8 @@ def _build_parser():
                        help="抓取完成后对发现的链接做存活体检（退出码沿用 check 语义）")
     crawl.add_argument("--strict", action="store_true",
                        help="体检阶段 blocked（401/403/429）也计入失败判定（默认仅 dead/error）")
+    crawl.add_argument("--check-same-domain", action="store_true",
+                       help="仅体检与起始 URL 同域的链接（外链噪声过滤，降低误报）")
 
     check = sub.add_parser(
         "check",
@@ -137,6 +139,15 @@ def _run_crawl(args):
     # 抓取即体检（lychee / linkchecker 的核心体验）：对发现的链接做存活体检，
     # 退出码沿用 check 语义（dead/error → 1）
     links = [r.get("link") for r in records if isinstance(r, dict) and r.get("link")]
+    if args.check_same_domain:
+        from .crawler import same_domain
+
+        start_urls = list(args.urls)
+        links = [
+            link for link in links
+            if any(same_domain(link, start) for start in start_urls)
+        ]
+        print(f"check scope: same-domain only ({len(links)} links)")
     if not links:
         print("check skipped: no discovered links")
         return 0

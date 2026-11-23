@@ -152,6 +152,16 @@ class CliHeadlessTest(unittest.TestCase):
             exit_code = main(["crawl", self.base_url, "--depth", "1", "--check"])
         self.assertEqual(exit_code, 1)
 
+    def test_crawl_check_same_domain_filters_external(self):
+        """--check-same-domain：外链不入体检范围 → 同域全 ok → 退出码 0。"""
+        pair = self._make_engine_pair()
+        with mock.patch("weblinkcrawler.cli._make_engine", return_value=pair):
+            exit_code = main(
+                ["crawl", self.base_url, "--depth", "1",
+                 "--check", "--check-same-domain"]
+            )
+        self.assertEqual(exit_code, 0)
+
     def test_check_export_json(self):
         out = os.path.join(self._tmp, "checks.json")
         pair = self._make_engine_pair()

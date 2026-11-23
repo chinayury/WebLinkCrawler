@@ -2,6 +2,18 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.6.0] -2026-11-24 ·crawl --check-same-domain 外链过滤
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.5.0 → v0.6.0（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 新增
+- **`crawl --check --check-same-domain`**：仅体检与起始 URL 同域的链接（复用 `crawler.same_domain`），外链不入体检范围；用于过滤 CDN/外链噪声、降低 cron/CI 告警误报。
+- 新增端到端对偶用例（外链过滤 → 退出码 0 / 不过滤 → 退出码 1），全量 **70 项**通过。
+
+### 兼容性说明
+- `crawl --check` 不带新开关时行为不变（新增参数默认关闭）；`check` 子命令、GUI、引擎接口零改动。
+- 验证：本机 `python -m compileall src tests` 全绿、`python -m unittest discover -s tests` 70 passed、CLI 冒烟通过；测试服务器容器内同口径全绿；CI 三平台全绿（发布前实测）。
+
 ## [v0.5.0] -2026-11-23 ·crawl --check 抓取即体检
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.4.5 → v0.5.0（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
