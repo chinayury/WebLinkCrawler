@@ -2,6 +2,18 @@
 
 >规则：仅追加，不修改历史记录。版本号严格对齐代码 `src/weblinkcrawler/__init__.py`。
 
+## [v0.6.2] -2026-11-25 ·许可同步核验与 logutil 补测
+
+> 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.6.1 → v0.6.2（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
+
+### 改进
+- **许可同步核验（周期性合规项，六点全过、无需修改）**：LICENSE 官方原文（662 行 FSF 文本）/ NOTICE §13 网络服务条款 / pyproject `license = "AGPL-3.0-or-later"` + `license-files` 且无 License 分类器 / 全量 .py SPDX 头 / README 许可段逐字模板 / GitHub 仓库识别 AGPL-3.0。
+- `logutil.py`（日志初始化）补入回归测试（幂等性/处理器构成/不向 root 传播，模块级 `_configured` 标志的进程隔离处理），全量 **74 项**通过（两遍连跑）。
+
+### 兼容性说明
+- `src/` **零改动**（仅新增测试）；产品行为、对外契约、构建元数据除版本号外不变。
+- 验证：本机 `python -m compileall src tests` 全绿、`python -m unittest discover -s tests` 74 passed（两遍连跑）、CLI 冒烟通过；测试服务器容器内同口径全绿；CI 三平台全绿（发布前实测）。
+
 ## [v0.6.1] -2026-11-24 ·测试基建提速
 
 > 本条为**追加**小节，上方历史条目不作任何修改。版本号 v0.6.0 → v0.6.1（`pyproject.toml` 与 `src/weblinkcrawler/__init__.py` 同步递增）。
