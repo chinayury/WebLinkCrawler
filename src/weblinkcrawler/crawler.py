@@ -1556,7 +1556,7 @@ class CrawlerEngine:
                         f"[跳过解析] {self._safe_url(target_url)} 非可解析内容类型")
                     return target_url, []
                 links = self.extract_links(
-                    self._decode(response), target_url, selector,
+                    self._decode(response), response.url, selector,
                 )
                 if delay > 0:
                     # 与退避等待同手法：Crawl-delay 等待也可被 stop 即时打断

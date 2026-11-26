@@ -45,7 +45,13 @@ class _FixtureHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
             return
-        body = _INDEX_HTML.encode("utf-8")
+        if self.path == "/start":
+            self.send_response(302)
+            self.send_header("Location", "/docs/index.html")
+            self.end_headers()
+            return
+        html = '<a href="guide.html">guide</a>' if self.path == "/docs/index.html" else _INDEX_HTML
+        body = html.encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -126,6 +132,16 @@ class CliHeadlessTest(unittest.TestCase):
         self.assertTrue(any(l.endswith("/alpha") for l in links), links)
         self.assertTrue(any(l.endswith("/beta") for l in links), links)
         self.assertEqual(payload["meta"]["count"], len(payload["links"]))
+
+    def test_redirected_page_exports_relative_to_final_url(self):
+        out = os.path.join(self._tmp, "links.json")
+        pair = self._make_engine_pair()
+        with mock.patch("weblinkcrawler.cli._make_engine", return_value=pair):
+            code = main(["crawl", self.base_url + "start", "--depth", "0", "--export", out])
+        self.assertEqual(code, 0)
+        with open(out, encoding="utf-8") as handle:
+            links = [item["link"] for item in json.load(handle)["links"]]
+        self.assertEqual(links, [self.base_url + "docs/guide.html"])
 
     def test_crawl_depth_override_applies(self):
         pair = self._make_engine_pair()
