@@ -247,6 +247,25 @@ class _SSLAdapter(_PinnedAdapter):
 
 
 
+def _resolve_base_href(href, response_url):
+    """相对最终响应地址解析 base 元素自己的 href。"""
+    href = str(href or "").strip()
+    if not href:
+        return None
+    try:
+        absolute = urljoin(response_url, href)
+        parts = urlsplit(absolute)
+        if parts.scheme not in _ALLOWED_SCHEMES or not parts.hostname:
+            return None
+        if any(ch.isspace() for ch in parts.hostname):
+            return None
+        # 访问 port 时 urllib 才会校验端口的格式和范围。
+        _ = parts.port
+    except ValueError:
+        return None
+    return absolute
+
+
 def _csv_cell(value):
     """中和 CSV 公式注入（F-01）。
 
@@ -1077,6 +1096,11 @@ class CrawlerEngine:
             log.warning("HTML解析失败(%s): %s", self._safe_url(base_url), type(exc).__name__)
             return []
 
+        first_base = soup.find("base", href=True)
+        document_url = base_url
+        if first_base is not None:
+            document_url = _resolve_base_href(first_base["href"], base_url) or base_url
+
         targets = [soup]
         selector = (css_selector or "").strip()
         if selector:
@@ -1096,7 +1120,12 @@ class CrawlerEngine:
                 for anchor in target.find_all("a", href=True):
                     raw.append(anchor.get("href"))
                 for tag in target.find_all(_RESOURCE_TAGS):
-                    raw.append(tag.get("src") or tag.get("href"))
+                    if tag.name == "base":
+                        href = (tag.get("href") or "").strip()
+                        if href and not href.startswith("#"):
+                            raw.append(_resolve_base_href(href, base_url))
+                    else:
+                        raw.append(tag.get("src") or tag.get("href"))
                 for tag in target.find_all(_SRCSET_TAGS):
                     srcset = tag.get("srcset")
                     if not srcset:
@@ -1111,7 +1140,7 @@ class CrawlerEngine:
             except Exception as exc:
                 log.debug("遍历标签异常(%s): %s", self._safe_url(base_url), type(exc).__name__)
 
-        return self._normalize_links(raw, base_url)
+        return self._normalize_links(raw, document_url)
 
     def _normalize_links(self, raw_links, base_url):
         """把原始 href/src规范化为绝对链接：过滤无效协议、应用排除规则并去重保序。

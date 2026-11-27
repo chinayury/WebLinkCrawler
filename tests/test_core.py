@@ -22,7 +22,7 @@ from weblinkcrawler import (
     APP_NAME_EN,
     APP_VERSION,
 )
-from weblinkcrawler.config import canonical_key, normalize_url
+from weblinkcrawler.config import ConfigManager, canonical_key, normalize_url
 from weblinkcrawler.crawler import CrawlerEngine, _csv_cell, same_domain
 from weblinkcrawler.security import is_ip_literal, is_private_host
 
@@ -111,6 +111,36 @@ class CrawlerPureFunctionTest(unittest.TestCase):
         self.assertTrue(same_domain("https://a.com/x", "http://a.com/y"))
         self.assertFalse(same_domain("https://a.com", "https://b.com"))
         self.assertFalse(same_domain("https://a.com", "https://a.com:8443"))
+
+    def test_first_base_resolves_links_and_each_base_uses_response_url(self):
+        engine = CrawlerEngine(ConfigManager())
+        links = engine.extract_links(
+            '<base target="_blank"><base href="media/"><base href="other/">'
+            '<a href="guide">Guide</a><img src="a.png" srcset="b.png 2x">',
+            "https://example.org/docs/index.html",
+        )
+        self.assertEqual(links, [
+            "https://example.org/docs/media/guide",
+            "https://example.org/docs/media/",
+            "https://example.org/docs/other/",
+            "https://example.org/docs/media/a.png",
+            "https://example.org/docs/media/b.png",
+        ])
+
+    def test_selected_content_uses_document_base(self):
+        engine = CrawlerEngine(ConfigManager())
+        page = "https://example.org/docs/index.html"
+        for href, expected in (
+            ("https://cdn.example.org/files/", "https://cdn.example.org/files/guide"),
+            ("", "https://example.org/docs/guide"),
+            ("data:text/plain,hello", "https://example.org/docs/guide"),
+            ("https://[", "https://example.org/docs/guide"),
+            ("https://example.org:bad/", "https://example.org/docs/guide"),
+        ):
+            with self.subTest(href=href):
+                html = (f'<base href="{href}"><base href="/ignored/">'
+                        '<a href="outside">Skip</a><main><a href="guide">Guide</a></main>')
+                self.assertEqual(engine.extract_links(html, page, "main"), [expected])
 
     def test_csv_cell_neutralizes_formula_injection(self):
         # F-01：以 = + - @ 或制表/回车开头的单元格统一加单引号前缀

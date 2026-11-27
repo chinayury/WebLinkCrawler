@@ -45,12 +45,15 @@ class _FixtureHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
             return
-        if self.path == "/start":
+        if self.path in ("/start", "/start-base"):
             self.send_response(302)
-            self.send_header("Location", "/docs/index.html")
+            destination = "/docs/index.html" if self.path == "/start" else "/docs/base.html"
+            self.send_header("Location", destination)
             self.end_headers()
             return
         html = '<a href="guide.html">guide</a>' if self.path == "/docs/index.html" else _INDEX_HTML
+        if self.path == "/docs/base.html":
+            html = '<base href="manual/"><a href="guide.html">guide</a>'
         body = html.encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -142,6 +145,18 @@ class CliHeadlessTest(unittest.TestCase):
         with open(out, encoding="utf-8") as handle:
             links = [item["link"] for item in json.load(handle)["links"]]
         self.assertEqual(links, [self.base_url + "docs/guide.html"])
+
+    def test_redirected_page_resolves_base_before_export(self):
+        out = os.path.join(self._tmp, "links.json")
+        with mock.patch("weblinkcrawler.cli._make_engine", return_value=self._make_engine_pair()):
+            code = main(["crawl", self.base_url + "start-base", "--depth", "0", "--export", out])
+        self.assertEqual(code, 0)
+        with open(out, encoding="utf-8") as handle:
+            links = [item["link"] for item in json.load(handle)["links"]]
+        self.assertEqual(links, [
+            self.base_url + "docs/manual/guide.html",
+            self.base_url + "docs/manual/",
+        ])
 
     def test_crawl_depth_override_applies(self):
         pair = self._make_engine_pair()
