@@ -39,9 +39,9 @@ def _build_parser():
     )
     crawl.add_argument("urls", nargs="+", metavar="URL", help="起始 URL（一个或多个）")
     crawl.add_argument("--depth", type=int, default=None, metavar="N",
-                       help="最大下钻深度（缺省取配置文件 crawl.max_depth）")
+                       help="最大下钻深度（缺省取配置文件 crawling_depth.depth）")
     crawl.add_argument("--max-pages", type=int, default=None, metavar="N",
-                       help="全局抓取页数上限（缺省取配置文件 crawl.max_pages）")
+                       help="全局抓取页数上限（缺省取配置文件 crawl_limits.max_pages）")
     crawl.add_argument("--export", default=None, metavar="PATH",
                        help="导出路径（自动创建父目录）")
     crawl.add_argument("--fmt", choices=_EXPORT_FORMATS, default="json",
