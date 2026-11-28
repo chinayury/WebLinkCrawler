@@ -1079,7 +1079,8 @@ class CrawlerEngine:
         """从 HTML中提取规范化后的绝对链接（去重、保持出现顺序）。
 
         提取范围：a[href]；img/link/script/iframe/area/base的 src|href；
-        img/source的 srcset。CSS选择器为空、非法或选不到元素时回退整页。
+        img/source的 srcset。查找范围含 CSS 选中的元素及其后代；
+        选择器为空、非法或选不到元素时回退整页。
         """
         if not html:
             return []
@@ -1114,19 +1115,24 @@ class CrawlerEngine:
             if selected:
                 targets = selected
 
+        def matching_tags(root, names):
+            if root.name in names:
+                yield root
+            yield from root.find_all(names)
+
         raw = []
         for target in targets:
             try:
-                for anchor in target.find_all("a", href=True):
+                for anchor in matching_tags(target, ("a",)):
                     raw.append(anchor.get("href"))
-                for tag in target.find_all(_RESOURCE_TAGS):
+                for tag in matching_tags(target, _RESOURCE_TAGS):
                     if tag.name == "base":
                         href = (tag.get("href") or "").strip()
                         if href and not href.startswith("#"):
                             raw.append(_resolve_base_href(href, base_url))
                     else:
                         raw.append(tag.get("src") or tag.get("href"))
-                for tag in target.find_all(_SRCSET_TAGS):
+                for tag in matching_tags(target, _SRCSET_TAGS):
                     srcset = tag.get("srcset")
                     if not srcset:
                         continue

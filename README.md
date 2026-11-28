@@ -48,14 +48,11 @@ WebLinkCrawler 是一款面向运维、内容整理与站点巡检场景的 Wind
 ## 快速启动
 
 ```bash
-# 1. 安装依赖（建议虚拟环境）
-python -m pip install -r requirements.txt
+# 在项目根目录安装锁定依赖和项目包（建议使用虚拟环境）
+python -m pip install -r requirements.txt -e .
 
-# 2a. 直接以模块方式启动（无需安装包）
+# 启动桌面程序（下列命令任选其一）
 python -m weblinkcrawler
-
-# 2b. 或注册命令后启动
-python -m pip install -e .
 weblinkcrawler
 ```
 

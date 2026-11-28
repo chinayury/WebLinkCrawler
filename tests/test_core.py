@@ -142,6 +142,23 @@ class CrawlerPureFunctionTest(unittest.TestCase):
                         '<a href="outside">Skip</a><main><a href="guide">Guide</a></main>')
                 self.assertEqual(engine.extract_links(html, page, "main"), [expected])
 
+    def test_selected_elements_contribute_their_own_links(self):
+        engine = CrawlerEngine(ConfigManager())
+        page = "https://example.org/docs/index.html"
+        html = ('<base href="media/"><a href="outside">Skip</a>'
+                '<a class="pick" href="guide"><img src="cover.png" '
+                'srcset="cover.png 1x, large.png 2x"></a>')
+        media = "https://example.org/docs/media/"
+        for selector, expected in (
+            ("a.pick", ["guide", "cover.png", "large.png"]),
+            ("img", ["cover.png", "large.png"]),
+            ("base[href]", [""]),
+            ("a.pick, img", ["guide", "cover.png", "large.png"]),
+        ):
+            with self.subTest(selector=selector):
+                self.assertEqual(engine.extract_links(html, page, selector),
+                                 [media + entry for entry in expected])
+
     def test_csv_cell_neutralizes_formula_injection(self):
         # F-01：以 = + - @ 或制表/回车开头的单元格统一加单引号前缀
         for raw in ("=cmd|' /c calc'!A1", "+1", "-x", "@SUM(A1)", "\tTab", "\rCR"):
